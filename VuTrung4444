@@ -257,7 +257,31 @@ local MobDropdown = MainSection:AddDropdown({
         selectedMobs = Chosen 
     end
 })
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
+local SpeedLimit = 100  -- Maximum speed a player can move (adjust as needed)
+local JumpHeightLimit = 100  -- Maximum height a player can jump
+local DetectionThreshold = 5  -- Times a player can trigger before being punished
+
+local playerData = {}  -- Store movement history
+
+-- Function to detect speed hacking and teleporting
+local function checkPlayerMovement(player, rootPart)
+    if not playerData[player] then
+        playerData[player] = {
+            lastPosition = rootPart.Position,
+            violations = 0
+        }
+    end
+
+    local lastPos = playerData[player].lastPosition
+    local distanceMoved = (rootPart.Position - lastPos).Magnitude
+    playerData[player].lastPosition = rootPart.Position
+
+    -- Speed Hack / Teleport Detection
+    if distanceMoved > SpeedLimit then
+        playerData[player].violations = playerData[player].
 MainSection:AddToggle({
     Name = "Farm",
     Flag = "FarmSelectedBosses",

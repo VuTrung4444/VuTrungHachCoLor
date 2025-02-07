@@ -1,6 +1,6 @@
 repeat task.wait() until game:IsLoaded()
 
---// Variables \\--
+--// Variables--Test3 \\--
 local plr = game.Players.LocalPlayer
 local character = plr.Character
 local PlrHumanoidRootPart = character.HumanoidRootPart
@@ -832,9 +832,8 @@ spawn(function()
             if plr.Character:FindFirstChild("HumanoidRootPart") then
                 local parentFolder = game:GetService("Workspace").Mobs
                 local v = getclosestSkills(parentFolder)
-                print("Tried To Kill "..v.Name)
-                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("arrow_knock_back_damage",game.Players.LocalPlayer.Character,v:GetModelCFrame(),v,99999,99999)
-                task.wait(0.2)
+                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("arrow_knock_back_damage",game.Players.LocalPlayer.Character,v:GetModelCFrame(),v,200,200)
+                task.wait(0.13)
             end
         end
     end
@@ -845,7 +844,7 @@ spawn(function()
         if getgenv().Arrow or getgenv().TargetPlayersArrow or getgenv().AllArrow then
             if plr.Character:FindFirstChild("HumanoidRootPart") then
                 game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:InvokeServer("skil_ting_asd",game:GetService("Players").LocalPlayer,"arrow_knock_back",5)
-                task.wait(12)
+                task.wait(5)
             end
         end
     end

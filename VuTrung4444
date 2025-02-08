@@ -585,8 +585,6 @@ end)
 spawn(function()
     while task.wait() do
         if ENG then
-getgenv().Godselected = "scythe_asteroid_reap"
-if getgenv().Godselected then
 local args = {
                 [1] = "skil_ting_asd",
                 [2] = game:GetService("Players").LocalPlayer,

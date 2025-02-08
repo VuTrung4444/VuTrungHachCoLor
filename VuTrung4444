@@ -153,7 +153,26 @@ local raceTable = {
     [4] = "Hybrid"
 }
 
-local SelectedBosses = {}
+local SelectedBosses = {"Snow Trainee",
+    "Sound Trainee",
+    "Akaza",
+    "Douma",
+    "Enme",
+    "Flame Trainee",
+    "Muichiro Tokito",
+    "Tengen",
+    "Rengoku",
+    "Inosuke",
+    "Swampy",
+    "Shiron",
+    "Zanegutsu Kuuchie",
+    "Sabito",
+    "Sanemi",
+    "Nezuko",
+    "Giyu",
+    "Slasher",
+    "Susamaru",
+    "Yahaba",}
 local Bosses = {}
 local mobs = {}
 local BossLabelTable = {}

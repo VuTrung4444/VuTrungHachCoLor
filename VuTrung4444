@@ -189,7 +189,6 @@ local BossLabelTable = {}
 
 local GodModes = {
     "scythe_asteroid_reap",
-    "Water_Surface_Slash",
     "Water_fall_basin",
     "insect_breathing_dance_of_the_centipede",
     "blood_burst_explosive_choke_slam",
@@ -243,9 +242,9 @@ local Subs = library.subs
 local IsOpen = Subs.Wait
 
 local Window = library:CreateWindow({
-    Name = "Empyri0n Hub | Project Slayers",
+    Name = "HackerLor | DmmDiana&Rice",
     Themeable = {
-        Info = "empyri0n",
+        Info = "HackerLor",
         Credit = false,
         Background = "",
         Visible = true
@@ -359,7 +358,7 @@ Settings:AddDropdown({
 Settings:AddSlider({
     Name = "Distance",
     Flag = "DistanceSlider",
-    Value = 5,
+    Value = 16,
     Min = 1,
     Max = 200,
     Textbox = true,
@@ -624,7 +623,7 @@ spawn(function()
             }
             
             game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("To_Server"):WaitForChild("Handle_Initiate_S"):FireServer(unpack(args))
-            task.wait(2)
+            task.wait(0.5)
         end
     end
 end)
@@ -694,7 +693,7 @@ end)
 
 
 FarmMethod = "Above"
-getgenv().Distance = 5
+getgenv().Distance = 16
 getgenv().tweenspeed = 300
 SelectedBosses = selectedBosses
 SelectedMobs = selectedMobs

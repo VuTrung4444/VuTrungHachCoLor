@@ -407,14 +407,14 @@ MiscSection:AddToggle({
     end
 })
 
-getgenv().Godselected = "scythe_asteroid_reap"
+getgenv().GodSelected = "scythe_asteroid_reap"
 
 MiscSection:AddDropdown({
     Name = "God mode Selection",
     Flag = "Gm",
     List = GodModes
 Callback = function (v)
-getgenv().Godselected = v
+getgenv().GodSelected = v
     end
 })
 

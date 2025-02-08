@@ -413,6 +413,8 @@ MiscSection:AddDropdown({
     Name = "God mode Selection",
     Flag = "Gm",
     List = GodModes
+Callback = function (v)
+getgenv().Godselected = v
     end
 })
 
@@ -592,7 +594,7 @@ spawn(function()
             }
             
             game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("To_Server"):WaitForChild("Handle_Initiate_S"):FireServer(unpack(args))
-            task.wait(1)
+            task.wait(4)
         end
     end
 end)

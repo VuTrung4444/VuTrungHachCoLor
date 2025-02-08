@@ -412,16 +412,14 @@ getgenv().Godselected = "scythe_asteroid_reap"
 MiscSection:AddDropdown({
     Name = "God mode Selection",
     Flag = "Gm",
-    List = GodModes,
-Callback = function (v)
-        getgenv().GodSelected = v
+    List = GodModes
     end
 })
 
 MiscSection:AddToggle({
-    Name = "enable God Mode",
+    Name = "Enable God Mode",
     Flag = "GN",
-    Keybind = "",
+    Keybind = "F",
     Callback = function (v)
         ENG = v
     end
@@ -594,7 +592,7 @@ spawn(function()
             }
             
             game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("To_Server"):WaitForChild("Handle_Initiate_S"):FireServer(unpack(args))
-            task.wait(2)
+            task.wait(1)
         end
     end
 end)

@@ -158,14 +158,12 @@ local mobs = {}
 local BossLabelTable = {}
 
 local GodModes = {
-    "Water_Surface_Slash",
-    "Water_fall_basin",
+    "scythe_asteroid_reap",
     "insect_breathing_dance_of_the_centipede",
     "blood_burst_explosive_choke_slam",
     "explosive_demon_art_blood_burst",
     "Wind_breathing_black_wind_mountain_mist",
     "flame_breathing_flaming_eruption",
-    "scythe_asteroid_reap",
     "Beast_breathing_devouring_slash",
     "akaza_flashing_williow_skillasd",
     "akaza_bda_compass_needle",
@@ -413,8 +411,7 @@ MiscSection:AddDropdown({
     Name = "God mode Selection",
     Flag = "Gm",
     List = GodModes,
-    Callback = function(v)
-        getgenv().GodSelected = v
+        getgenv().GodSelected = "scythe_asteroid_reap",
     end
 })
 

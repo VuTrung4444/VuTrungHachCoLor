@@ -585,8 +585,7 @@ end)
 spawn(function()
     while task.wait() do
         if ENG then
-
-local args = {
+            local args = {
                 [1] = "skil_ting_asd",
                 [2] = game:GetService("Players").LocalPlayer,
                 [3] = getgenv().GodSelected,

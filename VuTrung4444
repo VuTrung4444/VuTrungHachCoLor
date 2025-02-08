@@ -173,11 +173,22 @@ local SelectedBosses = {"Snow Trainee",
     "Slasher",
     "Susamaru",
     "Yahaba",}
+local SelectedMobs= {
+"Civilian",
+    "Heikin Demon",
+    "Slasher",
+    "Nomay Bandit",
+    "Nomay Bandit Boss",
+    "Yowai Demon",
+    "Thief",
+    "Mizunoto Demon Slayer",
+}
 local Bosses = {}
 local mobs = {}
 local BossLabelTable = {}
 
 local GodModes = {
+    "scythe_asteroid_reap",
     "Water_Surface_Slash",
     "Water_fall_basin",
     "insect_breathing_dance_of_the_centipede",
@@ -185,7 +196,6 @@ local GodModes = {
     "explosive_demon_art_blood_burst",
     "Wind_breathing_black_wind_mountain_mist",
     "flame_breathing_flaming_eruption",
-    "scythe_asteroid_reap",
     "Beast_breathing_devouring_slash",
     "akaza_flashing_williow_skillasd",
     "akaza_bda_compass_needle",

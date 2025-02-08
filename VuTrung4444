@@ -190,6 +190,7 @@ local BossLabelTable = {}
 local GodModes = {
     "scythe_asteroid_reap",
     "Water_fall_basin",
+"Water_Surface_Slash",
     "insect_breathing_dance_of_the_centipede",
     "blood_burst_explosive_choke_slam",
     "explosive_demon_art_blood_burst",
@@ -394,6 +395,7 @@ KillAura:AddDropdown({
     List = {"Sword","Combat","Scythe","Fans","Claw"},
     Flag = "KillAuraWeapon",
     Nothing = "Select Method...",
+Method = "Scythe",
     Callback = function(Chosen)
         Method = Chosen 
     end

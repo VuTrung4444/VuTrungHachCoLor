@@ -1,8 +1,10 @@
+
 repeat task.wait() until game:IsLoaded()
+
 --// Variables \\--
 local plr = game.Players.LocalPlayer
 local character = plr.Character
-local PlrHumanoidRootPart = character.HumanoidRootPart
+local PlrHumanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 
 --// Tween \\--
@@ -23,7 +25,7 @@ function Tween(Endpoint)
     local TweenFunc = {}
     local Distance = GetDistance(Endpoint)
     local TweenInfo = TweenInfo.new(Distance / getgenv().tweenspeed, Enum.EasingStyle.Linear)
-    local TweenObj = game:GetService("TweenService"):Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo, { CFrame = Endpoint * CFrame.fromAxisAngle(Vector3.new(1, 0, 0), math.rad(0))})
+    local TweenObj = game:GetService("TweenService"):Create(game.Players.LocalPlayer.Character.HumanoidRootPart, TweenInfo, { CFrame = Endpoint })
     TweenObj:Play()
 
     function TweenFunc:Cancel()
@@ -69,7 +71,7 @@ end
 
 --// Get Closest \\---
 function IsEntitySelected(entity, selectedEntities)
-for _, selectedEntity in ipairs(selectedEntities) do
+    for _, selectedEntity in ipairs(selectedEntities) do
         if entity.Name == selectedEntity then
             return true
         end
@@ -151,39 +153,12 @@ local raceTable = {
     [4] = "Hybrid"
 }
 
-local SelectedBosses = {"Snow Trainee",
-    "Sound Trainee",
-    "Akaza",
-    "Douma",
-    "Enme",
-    "Flame Trainee",
-    "Muichiro Tokito",
-    "Tengen",
-    "Rengoku",
-    "Inosuke",
-    "Swampy",
-    "Shiron",
-    "Zanegutsu Kuuchie",
-    "Sabito",
-    "Sanemi",
-    "Nezuko",
-    "Giyu",
-    "Slasher",
-    "Susamaru",
-    "Yahaba",}
+local SelectedBosses = {}
 local Bosses = {}
-local mobs = {"Civilian",
-    "Heikin Demon",
-    "Slasher",
-    "Nomay Bandit",
-    "Nomay Bandit Boss",
-    "Yowai Demon",
-    "Thief",
-    "Mizunoto Demon Slayer",}
+local mobs = {}
 local BossLabelTable = {}
 
 local GodModes = {
-"scythe_asteroid_reap",
     "Water_Surface_Slash",
     "Water_fall_basin",
     "insect_breathing_dance_of_the_centipede",
@@ -191,6 +166,7 @@ local GodModes = {
     "explosive_demon_art_blood_burst",
     "Wind_breathing_black_wind_mountain_mist",
     "flame_breathing_flaming_eruption",
+    "scythe_asteroid_reap",
     "Beast_breathing_devouring_slash",
     "akaza_flashing_williow_skillasd",
     "akaza_bda_compass_needle",
@@ -238,9 +214,9 @@ local Subs = library.subs
 local IsOpen = Subs.Wait
 
 local Window = library:CreateWindow({
-    Name = "HackerLor Hub | Project Slayers",
+    Name = "Empyri0n Hub | Project Slayers",
     Themeable = {
-        Info = "hackerlor",
+        Info = "empyri0n",
         Credit = false,
         Background = "",
         Visible = true
@@ -354,7 +330,7 @@ Settings:AddDropdown({
 Settings:AddSlider({
     Name = "Distance",
     Flag = "DistanceSlider",
-    Value = 15,
+    Value = 5,
     Min = 1,
     Max = 200,
     Textbox = true,
@@ -446,7 +422,7 @@ MiscSection:AddDropdown({
 MiscSection:AddToggle({
     Name = "enable God Mode",
     Flag = "GN",
-    Keybind = "F",
+    Keybind = "",
     Callback = function (v)
         ENG = v
     end
@@ -578,8 +554,7 @@ spawn(function()
                 if v.Name == "Loot_Chest" then
                     for i,c in pairs(v:FindFirstChild("Drops"):GetChildren()) do
                             v["Add_To_Inventory"]:InvokeServer(c.Name)
-                            task.delay(0.5, function()
-If c then
+                            delay(0.5, function()
                             c:Destroy()
                         end)
                     end
@@ -620,7 +595,7 @@ spawn(function()
             }
             
             game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("To_Server"):WaitForChild("Handle_Initiate_S"):FireServer(unpack(args))
-            task.wait(0.5)
+            task.wait(2)
         end
     end
 end)
@@ -673,6 +648,13 @@ task.spawn(function()
         end
     end
 end)
+
+
+
+
+
+
+
 
 
 

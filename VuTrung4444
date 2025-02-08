@@ -589,7 +589,7 @@ spawn(function()
                 [1] = "skil_ting_asd",
                 [2] = game:GetService("Players").LocalPlayer,
                 [3] = getgenv().GodSelected,
-                [4] = 1,
+                [4] = 1
             }
             
             game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("To_Server"):WaitForChild("Handle_Initiate_S"):FireServer(unpack(args))

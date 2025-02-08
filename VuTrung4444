@@ -411,7 +411,8 @@ MiscSection:AddDropdown({
     Name = "God mode Selection",
     Flag = "Gm",
     List = GodModes,
-        getgenv().GodSelected = "scythe_asteroid_reap",
+Callback = function (v)
+        getgenv().GodSelected = v
     end
 })
 

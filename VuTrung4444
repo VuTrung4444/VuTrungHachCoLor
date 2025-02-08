@@ -651,7 +651,7 @@ end)
 
 
 FarmMethod = "Above"
-getgenv().Distance = 16
+getgenv().Distance = 5
 getgenv().tweenspeed = 300
 SelectedBosses = selectedBosses
 SelectedMobs = selectedMobs
@@ -704,7 +704,7 @@ spawn(function()
                         repeat
                             task.wait()
                             local entityCFrame = v:GetModelCFrame() * FarmModes
-                            if GetDistance(entityCFrame) < 50 then
+                            if GetDistance(entityCFrame) < 25 and GetDistance(entityCFrame) < 150 then
                                 game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
                             else
                                 TweenFa = Tween(entityCFrame)
@@ -834,25 +834,24 @@ spawn(function()
             if plr.Character:FindFirstChild("HumanoidRootPart") then
                 local parentFolder = game:GetService("Workspace").Mobs
                 local v = getclosestSkills(parentFolder)
-if v then
                 print("Tried To Kill "..v.Name)
-                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("arrow_knock_back_damage",game.Players.LocalPlayer.Character,v:GetModelCFrame(),v,200,200)
-                task.wait(0.5)
+                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("arrow_knock_back_damage",game.Players.LocalPlayer.Character,v:GetModelCFrame(),v,99999,99999)
+                task.wait(0.2)
             end
         end
     end
 end)
 
-//spawn(function()
+spawn(function()
     while task.wait() do
         if getgenv().Arrow or getgenv().TargetPlayersArrow or getgenv().AllArrow then
             if plr.Character:FindFirstChild("HumanoidRootPart") then
-                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:FireServer("skil_ting_asd",game:GetService("Players").LocalPlayer,"arrow_knock_back",5)
-                task.wait(2)
+                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:InvokeServer("skil_ting_asd",game:GetService("Players").LocalPlayer,"arrow_knock_back",5)
+                task.wait(12)
             end
         end
     end
-end)//
+end)
 
 spawn(function()
     while task.wait() do
@@ -943,7 +942,7 @@ end)
 --// No Clip \\--
 local antifallActive = false 
 spawn(function()
-    game:GetService("RunService").Heartbeat:Connect(function()
+    game:GetService("RunService").Stepped:Connect(function()
         if getgenv().Farm then
             for _, v in pairs(game:GetService("Players").LocalPlayer.Character:GetDescendants()) do
                 if v:IsA("BasePart") then
@@ -968,7 +967,7 @@ end)
 
 --// Farm Method \\--
 spawn(function()
-    task.wait() do
+    while wait() do
         SkillActive = AutoUseSkills and (getgenv().Farm and NearestMobs)
          if FarmMethod == "Above" then
                 FarmModes = CFrame.new(0,getgenv().Distance,0) * CFrame.Angles(math.rad(-90),0,0)
@@ -1052,7 +1051,7 @@ end
 
 --// Update Labels / Dropdowns \\--
 spawn(function()
-    while task.wait(4) do
+    while task.wait(0.5) do
         updateBossLabels()
         checkAndAddBosses()
         checkAndAddMobs()

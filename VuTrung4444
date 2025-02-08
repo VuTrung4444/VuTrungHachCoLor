@@ -585,6 +585,8 @@ end)
 spawn(function()
     while task.wait() do
         if ENG then
+            getgenv().GodSelected = "scythe_asteroid_reap"
+        if not antifallEnabled then
             local args = {
                 [1] = "skil_ting_asd",
                 [2] = game:GetService("Players").LocalPlayer,

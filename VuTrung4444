@@ -158,12 +158,14 @@ local mobs = {}
 local BossLabelTable = {}
 
 local GodModes = {
-    "scythe_asteroid_reap",
+    "Water_Surface_Slash",
+    "Water_fall_basin",
     "insect_breathing_dance_of_the_centipede",
     "blood_burst_explosive_choke_slam",
     "explosive_demon_art_blood_burst",
     "Wind_breathing_black_wind_mountain_mist",
     "flame_breathing_flaming_eruption",
+    "scythe_asteroid_reap",
     "Beast_breathing_devouring_slash",
     "akaza_flashing_williow_skillasd",
     "akaza_bda_compass_needle",
@@ -407,22 +409,22 @@ MiscSection:AddToggle({
     end
 })
 
-
 MiscSection:AddDropdown({
     Name = "God mode Selection",
     Flag = "Gm",
     List = GodModes,
-Callback = function (v)
-getgenv().GodSelected = v
+    Callback = function(v)
+        getgenv().GodSelected = v
     end
 })
 
 MiscSection:AddToggle({
     Name = "Enable God Mode",
     Flag = "GN",
-    Keybind = "F",
+	keybind = "G",
     Callback = function (v)
         ENG = v
+		print("Bật được rồi tk lz", v)
     end
 })
 
@@ -593,7 +595,7 @@ spawn(function()
             }
             
             game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("To_Server"):WaitForChild("Handle_Initiate_S"):FireServer(unpack(args))
-            task.wait(4)
+            task.wait(2)
         end
     end
 end)
@@ -649,24 +651,12 @@ end)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 FarmMethod = "Above"
 getgenv().Distance = 5
 getgenv().tweenspeed = 300
 SelectedBosses = selectedBosses
 SelectedMobs = selectedMobs
+
 
 --// Farm \\--
 --// Farm \\--
@@ -756,22 +746,27 @@ function getclosestSkills(parentFolder)
     local closestEntity = nil
     local closestDistance = math.huge
     local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-
     local entities = parentFolder:GetDescendants()
 
     for _, entity in ipairs(entities) do
         if entity:IsA("Model") then
             local humanoid = entity:FindFirstChild("Humanoid")
             if humanoid and humanoid.Health > 0 then
-                local distance = (entity:GetModelCFrame().Position - playerPosition).Magnitude
-                if distance < closestDistance then
-                    closestDistance = distance
-                    closestEntity = entity
-                end
+				local modelCFrame = nil
+				if entity.GetModelCFrame and type(entity.GetModelCFrame) == "function" then
+					modelCFrame = entity:GetModelCFrame()
+				end
+				if modelCFrame then
+					local distance = (entity:GetModelCFrame().Position - playerPosition).Magnitude
+                	if distance < closestDistance then
+                   		closestDistance = distance
+                  		closestEntity = entity
+					end
+				end	
+
             end
         end
     end
-
     return closestEntity
 end
 
@@ -845,20 +840,45 @@ spawn(function()
             if plr.Character:FindFirstChild("HumanoidRootPart") then
                 local parentFolder = game:GetService("Workspace").Mobs
                 local v = getclosestSkills(parentFolder)
-                print("Tried To Kill "..v.Name)
-                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("arrow_knock_back_damage",game.Players.LocalPlayer.Character,v:GetModelCFrame(),v,99999,99999)
-                task.wait(0.2)
+
+				while not v do
+					task.wait(0.5)
+					v = getclosestSkills(parentFolder)
+				end
+				
+				local modelCFrame = nil
+				if v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+					modelCFrame = v:GetModelCFrame()
+				end
+
+				while not modelCFrame do
+					task.wait(0.01)
+					if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+						modelCFrame = v:GetModelCFrame()
+					end
+					if not v then
+						break
+					end
+				end
+
+				if modelCFrame then
+                	game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("arrow_knock_back_damage",game.Players.LocalPlayer.Character,modelCFrame,v,200,200)
+                	task.wait(0.13)
+				end
+
             end
         end
     end
 end)
+
+
 
 spawn(function()
     while task.wait() do
         if getgenv().Arrow or getgenv().TargetPlayersArrow or getgenv().AllArrow then
             if plr.Character:FindFirstChild("HumanoidRootPart") then
                 game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:InvokeServer("skil_ting_asd",game:GetService("Players").LocalPlayer,"arrow_knock_back",5)
-                task.wait(12)
+				task.wait(10)
             end
         end
     end
@@ -1062,7 +1082,7 @@ end
 
 --// Update Labels / Dropdowns \\--
 spawn(function()
-    while task.wait(4) do
+    while task.wait(0.5) do
         updateBossLabels()
         checkAndAddBosses()
         checkAndAddMobs()

@@ -213,9 +213,9 @@ local Subs = library.subs
 local IsOpen = Subs.Wait
 
 local Window = library:CreateWindow({
-    Name = "Empyri0n Hub | Project Slayers",
+    Name = "HackerLor | DMM DianaVsRice",
     Themeable = {
-        Info = "empyri0n",
+        Info = "VTrungHackerLor",
         Credit = false,
         Background = "",
         Visible = true

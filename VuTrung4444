@@ -17,7 +17,48 @@ end)
 
 local character = plr.Character
 local PlrHumanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local plr = game.Players.LocalPlayer
+local Character = plr.Character or plr.CharacterAdded:Wait()
+local Humanoid = Character and Character:WaitForChild("Humanoid")
+local WalkSpeed = 280
+local JumpPower = 150
 
+plr.CharacterAdded:Connect(function(Char)
+    Character = Char
+    Humanoid = Character:WaitForChild("Humanoid")
+
+    -- Cập nhật tốc độ và sức bật ngay khi nhân vật xuất hiện
+    if WalkSpeed then
+        Humanoid.WalkSpeed = WalkSpeed
+    end
+    if JumpPower then
+        Humanoid.JumpPower = JumpPower
+    end
+end)
+
+game:GetService("RunService").Stepped:Connect(function()
+    if Character and Humanoid then
+        -- Giữ tốc độ chạy cố định
+        if Humanoid.WalkSpeed ~= WalkSpeed then
+            Humanoid.WalkSpeed = WalkSpeed
+        end
+        
+        -- Giữ sức bật cố định
+        if Humanoid.JumpPower ~= JumpPower then
+            Humanoid.JumpPower = JumpPower
+        end
+    end
+end)
+
+plr.CharacterAdded:Connect(function(Char)
+    Character = Char
+    Humanoid = Character:WaitForChild("Humanoid")
+
+    -- Đặt lại tốc độ ngay lập tức
+    task.wait(0.1) -- Chờ game cập nhật xong
+    Humanoid.WalkSpeed = WalkSpeed
+    Humanoid.JumpPower = JumpPower
+end)
 
 --// Tween \\--
 local function GetDistance(Endpoint)
@@ -72,14 +113,37 @@ end
 
 local function DisableAntiFall()
     local plr = game.Players.LocalPlayer
-    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-        local humanoidRootPart = plr.Character.HumanoidRootPart
-        local antifall = humanoidRootPart:FindFirstChild("BodyVelocity")
-        if antifall then
-            antifall:Destroy()
-        end
+    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+
+    local humanoidRootPart = plr.Character.HumanoidRootPart
+    local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+    local antifall = humanoidRootPart:FindFirstChild("BodyVelocity")
+
+    -- Xóa lực AntiFall nếu tồn tại
+    if antifall then
+        antifall:Destroy()
+        task.wait(0.1) -- Chờ một chút để chắc chắn rằng BodyVelocity đã bị xóa
+    end
+
+    -- Đặt lại vận tốc để tránh bị giữ lại bởi lực cũ
+    humanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+    humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+    -- Đảm bảo nhân vật có thể di chuyển
+    if humanoid then
+        humanoid.PlatformStand = false  -- Ngăn trạng thái đứng yên cứng
+        humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)  -- Đưa nhân vật về trạng thái bình thường
+        task.wait(0.1)  -- Chờ một chút để trạng thái được cập nhật
+
+        -- Nhảy ngay lập tức để kiểm tra xem có bị khóa không
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end
+
+
+
 
 --// Get Closest \\---
 function IsEntitySelected(entity, selectedEntities)
@@ -112,12 +176,6 @@ function getclosest(selectedEntities, parentFolder)
                 end
             end
         end
-    end
-
-    if closestEntity then
-        print("Closest Entity:", closestEntity.Name)
-    else
-        print("No Closest Entity Found")
     end
 
     return closestEntity
@@ -262,6 +320,7 @@ local BossDropdown = MainSection:AddDropdown({
     end
 })
 
+
 local MobDropdown = MainSection:AddDropdown({
     Name = "Mob Selection",
     List = mobs,
@@ -278,14 +337,27 @@ MainSection:AddToggle({
     Flag = "FarmSelectedBosses",
     Callback = function (v)
         getgenv().Farm = v
-        if not v then 
-            if antifallActive then
+
+        if v then
+            print("Bật Farm!")
+        else
+            print("Tắt Farm!")
+
+            if antifallActive ~= nil and antifallActive then
                 antifallActive = false
-                DisableAntiFall()
+                DisableAntiFall() -- Gọi hàm sửa lỗi để tắt AntiFall
+
+                local plr = game.Players.LocalPlayer
+                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local humanoidRootPart = plr.Character.HumanoidRootPart
+                    local humanoid = plr.Character:FindFirstChildOfClass("Humanoid") 
+                        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                    end
+                end
             end
         end
-    end
 })
+
 
 MainSection:AddToggle({
     Name = "Arrow Aura [Near Mobs]",
@@ -380,7 +452,7 @@ KillAura:AddDropdown({
     List = {"Sword","Combat","Scythe","Fans","Claw"},
     Flag = "KillAuraWeapon",
     Nothing = "Select Method...",
-    Value = "Scythe",
+	Value = "Scythe",
     Callback = function(Chosen)
         Method = Chosen 
     end
@@ -407,6 +479,41 @@ BossesTab:AddLabel("")
 
 --// Misc Section \\--
 
+MiscSection:AddSlider({
+    Name = "WalkSpeed",
+    Value = 280,
+    Min = 16,
+    Max = 300,
+    Flag = "WalkSpeed",
+    Callback = function(State)
+        WalkSpeed = State
+        if game.Players.LocalPlayer.Character then
+            local humanoid = game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = WalkSpeed
+            end
+        end
+    end
+})
+
+MiscSection:AddSlider({
+    Name = "JumpPower",
+    Value = 150,
+    Min = 50,
+    Max = 1000,
+    Flag = "JumpPower",
+    Callback = function(State)
+        JumpPower = State
+        if game.Players.LocalPlayer.Character then
+            local humanoid = game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.JumpPower = JumpPower
+            end
+        end
+    end
+})
+
+
 MiscSection:AddToggle({
     Name = "Inf Breathing",
     Flag = "InfBreathing",
@@ -415,6 +522,9 @@ MiscSection:AddToggle({
         InfBreathing = v
     end
 })
+
+
+
 
 MiscSection:AddToggle({
     Name = "Inf Stamina",
@@ -512,6 +622,7 @@ MiscSection:AddToggle({
 MiscSection:AddToggle({
     Name = "No Fog",
     Flag = "NF",
+    Keybind = false,
     Callback = function (v)
         if v == true then
             for index, light in pairs(game:GetService("Lighting"):GetChildren()) do
@@ -544,10 +655,9 @@ MiscSection:AddToggle({
     end
 })
 
+
+
 --// Actual Code \\--
-
-
-
 
 --// Inf War Fan Bugg \\--
 spawn(function()
@@ -667,7 +777,7 @@ end)
 
 
 FarmMethod = "Above"
-getgenv().Distance = 15
+getgenv().Distance = 9
 getgenv().tweenspeed = 300
 SelectedBosses = selectedBosses
 SelectedMobs = selectedMobs
@@ -682,21 +792,15 @@ spawn(function()
     local farmActive = false
 
     while wait() do
-        if getgenv().Farm and not farmActive then
-            farmActive = true
-            if not antifallEnabled then
-                EnableAntiFall()
-                antifallEnabled = true
-            end
-        elseif not getgenv().Farm and farmActive then
-            farmActive = false
-            if antifallEnabled then
-                DisableAntiFall()
-                antifallEnabled = false
-            end
-        end
-
         if getgenv().Farm then
+            if not farmActive then
+                farmActive = true
+                if not antifallEnabled then
+                    EnableAntiFall()
+                    antifallEnabled = true
+                end
+            end
+
             local selectedEntities = {}
             local parentFolder = game:GetService("Workspace").Mobs
 
@@ -720,19 +824,16 @@ spawn(function()
                         repeat
                             task.wait()
                             local entityCFrame = v:GetModelCFrame() * FarmModes
-                            if GetDistance(entityCFrame) < 25 and GetDistance(entityCFrame) < 150 then
+                            if GetDistance(entityCFrame) >= 25 and GetDistance(entityCFrame) < 150 then
                                 game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
                             else
                                 TweenFa = Tween(entityCFrame)
                             end
                         until not getgenv().Farm or not v.Parent or v.Humanoid.Health <= 0 or not v:IsDescendantOf(workspace)
 
-                        -- Check if the entity is a boss or a regular mob
                         if IsEntitySelected(v, SelectedBosses) then
-                            -- Handle boss defeat
                             print("Defeated boss:", v.Name)
                         elseif IsEntitySelected(v, SelectedMobs) then
-                            -- Handle regular mob defeat
                             print("Defeated mob:", v.Name)
                         end
                     end
@@ -749,9 +850,16 @@ spawn(function()
                 end
             end
         else
-            currentEntity = nil
-            if TweenFa then
-                TweenFa:Cancel()
+            if farmActive then
+                farmActive = false
+                if antifallEnabled then
+                    DisableAntiFall()
+                    antifallEnabled = false
+                end
+                currentEntity = nil
+                if TweenFa then
+                    TweenFa:Cancel()
+                end
             end
         end
     end
@@ -969,6 +1077,7 @@ spawn(function()
 end)
 
 
+
 spawn(function()
     while task.wait() do
         if getgenv().AllArrow then
@@ -1075,9 +1184,25 @@ end
 
 
 local function updateBossLabels()
+    -- Kiểm tra thư mục Bosses có tồn tại không
+    local bossesFolder = game:GetService("Workspace"):FindFirstChild("Mobs") and 
+                         game:GetService("Workspace").Mobs:FindFirstChild("Bosses")
+
+    if not bossesFolder then 
+        warn("[updateBossLabels] Bosses folder not found!") 
+        return 
+    end
+
+    -- Kiểm tra AllowedBosses có được khai báo và có dữ liệu không
+    if not AllowedBosses or #AllowedBosses == 0 then
+        warn("[updateBossLabels] AllowedBosses is empty or not defined!")
+        return
+    end
+
     BossLabelTable = {}
 
-    for _, child in ipairs(game:GetService("Workspace").Mobs.Bosses:GetDescendants()) do
+    -- Lặp qua danh sách các Boss
+    for _, child in ipairs(bossesFolder:GetDescendants()) do
         if child:IsA("Model") then
             local mobName = child.Name
             if string.find(child:GetFullName(), "Bosses") then
@@ -1088,11 +1213,65 @@ local function updateBossLabels()
         end
     end
 
+    -- Kiểm tra BossLabel trước khi sử dụng
+    if not BossLabel then
+        warn("[updateBossLabels] BossLabel is nil!")
+        return
+    end
+
+    -- Cập nhật label
     BossLabel:Set("Bosses Spawned: \n" .. table.concat(BossLabelTable, "\n"))
 end
 
+local Signals = Signals or {} -- Đảm bảo Signals là một bảng hợp lệ
+local plr = game.Players.LocalPlayer -- Lấy người chơi cục bộ
+
+-- Đảm bảo khi nhân vật spawn lại, tốc độ và nhảy được đặt lại
+Signals[#Signals + 1] = plr.CharacterAdded:Connect(function(Char)
+    Character = Char
+    HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+    Humanoid = Character:WaitForChild("Humanoid")
+
+    task.wait(0.5) -- Chờ game đặt lại giá trị mặc định
+
+    -- Đặt lại tốc độ chạy và nhảy nếu có giá trị cài sẵn
+    if WalkSpeed then 
+        Humanoid.WalkSpeed = WalkSpeed 
+    end
+    if JumpPower then 
+        Humanoid.JumpPower = JumpPower 
+    end
+end)
+
+-- Đảm bảo giá trị luôn duy trì ngay cả khi nhân vật respawn
+plr.CharacterAdded:Connect(function()
+    task.wait(1) -- Đợi nhân vật load xong
+    setMovementStats()
+end)
 
 
+task.spawn(function()
+    while true do
+        task.wait(2) -- Kiểm tra mỗi 2 giây
+
+        if not Humanoid then
+            print("[DEBUG] Humanoid is nil")
+        else
+            print("[DEBUG] WalkSpeed:", Humanoid.WalkSpeed, "Expected:", WalkSpeed)
+            print("[DEBUG] JumpPower:", Humanoid.JumpPower, "Expected:", JumpPower)
+
+            if Humanoid.WalkSpeed ~= WalkSpeed then
+                Humanoid.WalkSpeed = WalkSpeed
+                print("[UPDATE] WalkSpeed changed to:", WalkSpeed)
+            end
+
+            if Humanoid.JumpPower ~= JumpPower then
+                Humanoid.JumpPower = JumpPower
+                print("[UPDATE] JumpPower changed to:", JumpPower)
+            end
+        end
+    end
+end)
 
 
 --// Update Labels / Dropdowns \\--

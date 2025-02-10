@@ -1,9 +1,22 @@
 repeat task.wait() until game:IsLoaded()
 
 --// Variables \\--
-local plr = game.Players.LocalPlayer
+local plr = game:GetService("Players").LocalPlayer
+
+local function updateCharacterReferences(character)
+	local hrp = character:WaitForChild("HumanoidRootPart")
+		_G.Character = character
+		_G.HumanoidRootPart = hrp
+end
+	if plr.Character then
+		updateCharacterReferences(plr.Character)
+	end
+	plr.CharacterAdded:Connect(function(character)
+    updateCharacterReferences(character)
+end)
+
 local character = plr.Character
-local PlrHumanoidRootPart = character.HumanoidRootPart
+local PlrHumanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 
 --// Tween \\--
@@ -158,7 +171,7 @@ local mobs = {}
 local BossLabelTable = {}
 
 local GodModes = {
-"scythe_asteroid_reap",
+	"scythe_asteroid_reap",
     "Water_Surface_Slash",
     "Water_fall_basin",
     "insect_breathing_dance_of_the_centipede",
@@ -367,6 +380,7 @@ KillAura:AddDropdown({
     List = {"Sword","Combat","Scythe","Fans","Claw"},
     Flag = "KillAuraWeapon",
     Nothing = "Select Method...",
+    Value = "Scythe",
     Callback = function(Chosen)
         Method = Chosen 
     end
@@ -498,7 +512,6 @@ MiscSection:AddToggle({
 MiscSection:AddToggle({
     Name = "No Fog",
     Flag = "NF",
-    Keybind = false,
     Callback = function (v)
         if v == true then
             for index, light in pairs(game:GetService("Lighting"):GetChildren()) do
@@ -654,7 +667,7 @@ end)
 
 
 FarmMethod = "Above"
-getgenv().Distance = 5
+getgenv().Distance = 15
 getgenv().tweenspeed = 300
 SelectedBosses = selectedBosses
 SelectedMobs = selectedMobs

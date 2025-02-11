@@ -18,6 +18,7 @@ end)
 local insert = table.insert 
 local character = plr.Character
 local PlrHumanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
 local plr = game.Players.LocalPlayer
 local Character = plr.Character or plr.CharacterAdded:Wait()	
 local Humanoid = Character and Character:WaitForChild("Humanoid")
@@ -136,6 +137,19 @@ local function AutoSkillLoop()
         end
     end
 end
+
+---Flower----
+local RunService = game:GetService("RunService");
+local Players = game:GetService("Players");
+local Player = Players.LocalPlayer;
+local chr = Player.Character
+local root = chr and chr:FindFirstChild("HumanoidRootPart")
+
+local AutoCollectLilys = false
+
+
+local TeleportSpeed = 250;
+local NextFrame = RunService.Heartbeat;
 
 
 --// Tween \\--
@@ -439,6 +453,8 @@ local attackMethods = {
     ["Fans"] = 'fans_combat_slash',
 }
 
+local godModeState = false
+local godModeToggle = {}-- Khai báo trước nhưng chưa gán
 
 --// Main Script \\--
 local library = loadstring(game:GetObjects("rbxassetid://7657867786")[1].Source)()
@@ -649,27 +665,6 @@ Teleports:AddToggle({
     end
 })
 
--- Dropdown danh sách địa điểm (ban đầu trống)
-LocationsDropdown = Teleports:AddDropdown({
-    Name = "Locations",
-    Nothing = "Select Location...",
-    Flag = "LocationSelect",
-    List = LocationsToUse, -- Cập nhật danh sách mới
-    Callback = function(State)
-        SelectedArea = State
-    end
-})
-
--- Dropdown danh sách Boss (ban đầu trống)
-BossesDropdown = Teleports:AddDropdown({
-    Name = "Farm Bosses",
-    Nothing = "Select Boss...",
-    Flag = "BossSelect",
-    List = {}, -- Ban đầu danh sách rỗng
-    Callback = function(State)
-        SelectedBoss = State
-    end
-})
 
 Teleports:AddButton({
     Name = "Skibidi To",
@@ -724,6 +719,28 @@ Teleports:AddButton({
 
         Teleporting = false
         print("✅ Dịch chuyển thành công!")
+    end
+})
+
+-- Dropdown danh sách địa điểm (ban đầu trống)
+LocationsDropdown = Teleports:AddDropdown({
+    Name = "Locations",
+    Nothing = "Select Location...",
+    Flag = "LocationSelect",
+    List = LocationsToUse, -- Cập nhật danh sách mới
+    Callback = function(State)
+        SelectedArea = State
+    end
+})
+
+-- Dropdown danh sách Boss (ban đầu trống)
+BossesDropdown = Teleports:AddDropdown({
+    Name = "Farm Bosses",
+    Nothing = "Select Boss...",
+    Flag = "BossSelect",
+    List = {}, -- Ban đầu danh sách rỗng
+    Callback = function(State)
+        SelectedBoss = State
     end
 })
 
@@ -782,27 +799,6 @@ MiscSection:AddSlider({
 })
 
 
-MiscSection:AddToggle({
-    Name = "Inf Breathing",
-    Flag = "InfBreathing",
-    Keybind = false,
-    Callback = function (v)
-        InfBreathing = v
-    end
-})
-
-
-
-
-MiscSection:AddToggle({
-    Name = "Inf Stamina",
-    Flag = "InfStamina",
-    Keybind = false,
-    Callback = function (v)
-        InfStamina = v
-    end
-})
-
 MiscSection:AddDropdown({
     Name = "God mode Selection",
     Flag = "Gm",
@@ -812,13 +808,33 @@ MiscSection:AddDropdown({
     end
 })
 
+--GodModeState--
+local godModeToggle = MiscSection:AddToggle({
+    Name = "Enable God Mode",
+    Flag = "ENG_Toggle",
+    Callback = function(v)
+        godModeState = v
+        ENG = v
+    end
+})
+
+local function toggleGodMode(state)
+    godModeState = state
+    ENG = state
+
+    -- Cập nhật giao diện của toggle
+    if godModeToggle.Callback then
+        task.spawn(function()
+            godModeToggle.Callback(state)
+			print("test")
+        end)
+    end
+end
+
 MiscSection:AddButton({
     Name = "Enable God Mode",
-    Flag = "GN",
-	keybind = "G",
-    Callback = function (v)
-        ENG = v
-		print("Bật được rồi tk lz", v)
+    Callback = function()
+        toggleGodMode(not godModeState) -- Đảo trạng thái bật/tắt
     end
 })
 
@@ -857,6 +873,26 @@ MiscSection:AddToggle({
     end
 })
 
+MiscSection:AddToggle({
+    Name = "Inf Breathing",
+    Flag = "InfBreathing",
+    Keybind = false,
+    Callback = function (v)
+        InfBreathing = v
+    end
+})
+
+
+
+
+MiscSection:AddToggle({
+    Name = "Inf Stamina",
+    Flag = "InfStamina",
+    Keybind = false,
+    Callback = function (v)
+        InfStamina = v
+    end
+})
 
 MiscSection:AddToggle({
     Name = "Thunder Mode [Human]",
@@ -923,6 +959,15 @@ MiscSection:AddToggle({
     end
 })
 
+MiscSection:AddToggle({
+	Name = "Auto Collect Lilys",
+	Flag = "CollectAllLilys",
+	Keybind = false,
+	Callback = function (v)
+		AutoCollectLilys = v
+	end
+})
+
 AutoSkills:AddToggle({
     Name = "Auto Skill",
     Flag = "AutoSkillEnabled",
@@ -961,7 +1006,7 @@ function UpdateLists()
         BossesToUse = BossesMap2List
     end
 
-    -- Xóa Dropdown cũ
+    -- Xóa Dropdown cũ nếu tồn tại
     if LocationsDropdown then
         LocationsDropdown:Remove()
     end
@@ -981,54 +1026,49 @@ function UpdateLists()
     })
 
     BossesDropdown = Teleports:AddDropdown({
-        Name = "Farm Bosses",
-        Nothing = "Select Boss...",
-        Flag = "BossSelect",
-        List = BossesToUse,
-        Callback = function(State)
-            SelectedBoss = State
-        end
-    })
+    Name = "Farm Bosses",
+    Nothing = "ForCheckOnly",
+    Flag = "BossSelect",
+    List = (function()
+        if not BossesToUse or type(BossesToUse) ~= "table" then
 
-    -- Gọi UpdateBossList ngay sau khi cập nhật danh sách
-    UpdateBossList()
+            return {}
+        end
+
+        local names = {}
+        for index, boss in ipairs(BossesToUse) do
+            if boss and type(boss) == "table" and boss.Name then
+                table.insert(names, boss.Name)
+            end
+        end
+        return names
+    end)(),
+    Callback = function(State)
+        SelectedBoss = State
+    end
+})
+
+
+    -- Gọi UpdateActiveBossLocations để cập nhật danh sách boss hiện tại
+    UpdateActiveBossLocations()
 end
 
-function UpdateBossList()
-    ActiveBossLocations = {} -- Xóa danh sách cũ trước khi cập nhật
+function UpdateActiveBossLocations()
+    ActiveBossLocations = {}
 
-    local BossList = (SelectedMap == "Map1" and BossesMap1List) or (SelectedMap == "Map2" and BossesMap2List) or {}
-
-    -- Kiểm tra dữ liệu đầu vào
-    if type(BossList) ~= "table" then
-        warn("❌ BossList không hợp lệ! Giá trị nhận được:", BossList)
+    -- Kiểm tra map hiện tại và cập nhật danh sách boss
+    if SelectedMap == "Map1" then
+        ActiveBossLocations = BossLocationsMap1
+    elseif SelectedMap == "Map2" then
+        ActiveBossLocations = BossLocationsMap2
+    else
         return
     end
 
-    -- Lặp qua danh sách boss và kiểm tra dữ liệu hợp lệ trước khi thêm vào
-    for i, boss in ipairs(BossList) do
-        if type(boss) == "table" and boss.Name and boss.Position then
-            table.insert(ActiveBossLocations, boss)
-            print("🔥 Đã thêm Boss:", boss.Name, "Vị trí:", boss.Position)
-        else
-            warn("⚠️ Lỗi: Boss ở vị trí", i, "không hợp lệ! Giá trị nhận được:", boss)
-        end
-    end
-
-    -- Kiểm tra danh sách boss sau khi cập nhật
-    if #ActiveBossLocations == 0 then
-        warn("⚠️ Không có Boss nào khả dụng sau khi cập nhật!")
-    else
-        print("✅ Danh sách Boss hợp lệ:", ActiveBossLocations)
-    end
 end
 
 
-
-
-
 --// Auto Collect Chest \\--
-
 spawn(function()
     while task.wait() do
         if AutoCollectChest then
@@ -1141,8 +1181,8 @@ SelectedMobs = selectedMobs
 
 
 --// Farm \\--
---// Farm \\--
 spawn(function()
+
     local currentEntity
     local antifallEnabled = false
     local TweenFa
@@ -1314,7 +1354,6 @@ end
 
 --// Arrow Kill Aura \\--
 
-
 spawn(function()
     while task.wait() do
         if getgenv().Arrow then
@@ -1448,8 +1487,6 @@ spawn(function()
         end
     end
 end)
-
-
 
 
 --// No Clip \\--
@@ -1608,31 +1645,64 @@ plr.CharacterAdded:Connect(function()
 end)
 
 --AutoBoss--
-
 spawn(function()
     while true do
         if getgenv().Farm then
-            -- Debug: In ra danh sách boss trước khi kiểm tra
-            print("📌 Danh sách ActiveBossLocations:", ActiveBossLocations)
+            -- Cập nhật danh sách boss trước khi farm
+            UpdateActiveBossLocations()
 
             -- Kiểm tra xem danh sách boss có hợp lệ không
             if not ActiveBossLocations or type(ActiveBossLocations) ~= "table" or #ActiveBossLocations == 0 then
-                warn("⚠️ Không có Boss nào khả dụng!")
-                
-                -- Debug: Nếu là bảng rỗng, in chi tiết
-                if type(ActiveBossLocations) == "table" then
-                    print("📌 ActiveBossLocations rỗng, số lượng boss:", #ActiveBossLocations)
-                else
-                    print("❌ ActiveBossLocations không phải bảng, giá trị:", ActiveBossLocations)
-                end
-                
                 task.wait(1)
                 continue
             end
 
-            -- Tiếp tục xử lý nếu có boss
+            -- Sắp xếp danh sách boss theo khoảng cách
+            pcall(function()
+                table.sort(ActiveBossLocations, function(a, b)
+                    return GetDistance(a.Position) < GetDistance(b.Position)
+                end)
+            end)
+
             for _, boss in ipairs(ActiveBossLocations) do
-                print("🔥 Đang kiểm tra Boss:", boss.Name, "Vị trí:", boss.Position)
+                if not getgenv().Farm then break end -- Dừng nếu Farm bị tắt
+
+                local bossCFrame = CFrame.new(boss.Position)
+                local TweenFa = Tween(bossCFrame)
+
+                -- Chờ đến khi đến gần boss
+                repeat
+                    task.wait()
+                until not getgenv().Farm or GetDistance(bossCFrame) < 20
+                
+                if not getgenv().Farm then break end -- Kiểm tra lại nếu Farm bị tắt
+
+                if TweenFa then TweenFa:Cancel() end -- Hủy tween khi đã đến gần boss
+
+                -- Kiểm tra xem boss có tồn tại trong Workspace không
+                local bossEntity = getclosest({boss.Name}, game:GetService("Workspace").Mobs)
+
+                if bossEntity and bossEntity:FindFirstChild("Humanoid") then
+                    repeat
+                        task.wait()
+                        if not bossEntity.Parent or bossEntity.Humanoid.Health <= 0 then break end -- Nếu boss chết thì dừng
+                        
+                        local entityCFrame = bossEntity:GetModelCFrame() * FarmModes
+
+                        if GetDistance(entityCFrame) >= 25 and GetDistance(entityCFrame) < 150 then
+                            -- Nếu khoảng cách hợp lý, dịch chuyển ngay
+                            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
+                        else
+                            -- Nếu boss ở xa, dùng Tween để tiếp cận
+                            TweenFa = Tween(entityCFrame)
+                        end
+                    until not getgenv().Farm or not bossEntity.Parent or bossEntity.Humanoid.Health <= 0
+
+                    if TweenFa then TweenFa:Cancel() end -- Hủy Tween sau khi hạ gục boss
+                else
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = bossCFrame
+                    task.wait(1) -- Đứng chờ 1 giây trước khi tiếp tục
+                end
             end
         else
             task.wait(1) -- Giảm tải CPU khi Farm bị tắt
@@ -1640,6 +1710,113 @@ spawn(function()
     end
 end)
 
+---Nhặt Hoa---
+local function fireproximityprompt(ProximityPrompt, Amount, Skip)
+
+    local HoldDuration = ProximityPrompt.HoldDuration
+    if Skip then
+        ProximityPrompt.HoldDuration = 0
+    end
+
+    for i = 1, Amount or 1 do
+        ProximityPrompt:InputHoldBegin()
+        task.wait(HoldDuration)
+        ProximityPrompt:InputHoldEnd()
+    end
+
+    ProximityPrompt.HoldDuration = HoldDuration
+end
+
+
+local function ImprovedTeleport(Target)
+    if (typeof(Target) == "Instance" and Target:IsA("BasePart")) then
+        Target = Target.Position;
+    end;
+    if (typeof(Target) == "CFrame") then
+        Target = Target.p
+    end;
+    local HRP = (Player.Character and Player.Character:FindFirstChild("HumanoidRootPart"));
+    if (not HRP) then
+        return;
+    end;
+    local StartingPosition = HRP.Position;
+    local PositionDelta = (Target - StartingPosition);
+    local StartTime = tick();
+    local TotalDuration = (StartingPosition - Target).magnitude / TeleportSpeed;
+    repeat
+        NextFrame:Wait();
+        local Delta = tick() - StartTime;
+        local Progress = math.min(Delta / TotalDuration, 1);
+        local MappedPosition = StartingPosition + (PositionDelta * Progress);
+        HRP.Velocity = Vector3.new();
+        HRP.CFrame = CFrame.new(MappedPosition);
+    until (HRP.Position - Target).magnitude <= TeleportSpeed / 2;
+    HRP.Anchored = false;
+    HRP.CFrame = CFrame.new(Target);
+end;
+
+local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
+
+local function getFlower()
+    local chr = Player.Character
+    local root = chr and chr:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end -- Tránh lỗi nếu root bị nil
+
+    local dist, flower = math.huge
+    for i, v in next, flowers:GetChildren() do
+        if v:IsA('Model') then
+            local mag = (root.Position - v.WorldPivot.Position).magnitude
+            if mag < dist then
+                dist = mag
+                flower = v
+            end
+        end
+    end
+    return flower
+end
+
+spawn(function()
+    while task.wait() do
+        if AutoCollectLilys then
+            repeat
+                task.wait()
+                local flower = getFlower()
+
+if type(AutoCollectLilys) ~= "boolean" then
+    warn("⚠️ AutoCollectLilys không phải là boolean, giá trị hiện tại: ", AutoCollectLilys)
+end
+                -- Nếu không tìm thấy hoa, bỏ qua vòng lặp này
+                if not flower then
+                    warn("⚠️ Không tìm thấy hoa, tiếp tục tìm...")
+                    continue
+                end
+
+                local startTime = tick() -- Ghi lại thời gian bắt đầu thu thập hoa
+
+                -- Kiểm tra xem WorldPivot có tồn tại không trước khi teleport
+                if flower.WorldPivot then
+                    ImprovedTeleport(flower.WorldPivot.Position)
+                    task.wait(0.25)
+
+                    for i, v in next, flower:GetDescendants() do
+                        if v:IsA("ProximityPrompt") then
+                            fireproximityprompt(v, 1, true)
+                        end
+                    end
+                else
+                    warn("⚠️ WorldPivot của hoa không tồn tại!")
+                end
+
+                -- Kiểm tra nếu mất hơn 6 giây để thu thập
+                while tick() - startTime < 6 do
+                    task.wait()
+                    if not flower.Parent then break end -- Nếu hoa biến mất, thoát vòng lặp
+                end
+
+            until not AutoCollectLilys
+        end
+    end
+end)
 
 
 --// Update Labels / Dropdowns \\--

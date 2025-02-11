@@ -15,12 +15,13 @@ end
     updateCharacterReferences(character)
 end)
 
+local insert = table.insert 
 local character = plr.Character
 local PlrHumanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local plr = game.Players.LocalPlayer
-local Character = plr.Character or plr.CharacterAdded:Wait()
+local Character = plr.Character or plr.CharacterAdded:Wait()	
 local Humanoid = Character and Character:WaitForChild("Humanoid")
-local WalkSpeed = 280
+local WalkSpeed = 150
 local JumpPower = 150
 
 plr.CharacterAdded:Connect(function(Char)
@@ -59,6 +60,83 @@ plr.CharacterAdded:Connect(function(Char)
     Humanoid.WalkSpeed = WalkSpeed
     Humanoid.JumpPower = JumpPower
 end)
+
+
+local SkillCooldowns = {}
+local SelectedSkills = {"Z", "X", "C", "V"} -- Danh sách kỹ năng hợp lệ
+local skill = SelectedSkills[1] -- Lấy kỹ năng đầu tiên
+
+function GetCooldownTime(skill)
+    -- Giả lập dữ liệu hồi chiêu
+    local cooldowns = {Z = 5, X = 5, C = 5, V = 5, B = 5, N = 5}
+    return cooldowns[skill] or nil
+end
+
+
+local function UseSkill(skill)
+    if IsSkillReady(skill) then
+        VirtualInputManager:SendKeyEvent(true, skill, false, game)
+        SkillCooldowns[skill] = tick() -- Lưu thời gian sử dụng skill
+    end
+end
+
+
+local function IsSkillReady(skill)
+    local lastUsed = SkillCooldowns[skill] or 0
+    local cooldownTime = GetCooldownTime(skill) -- Hàm giả định lấy thời gian hồi chiêu của skill
+    return (tick() - lastUsed) >= cooldownTime
+end
+
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local AutoSkillEnabled = false -- Biến điều khiển Auto Skill
+local SkillStates = {
+    Z = false,
+    X = false,
+    C = false,
+    V = false,
+    B = false,
+    N = false
+}
+
+
+if not VirtualInputManager or not VirtualInputManager.SendKeyEvent then
+    error("❌ VirtualInputManager không hỗ trợ SendKeyEvent! Không thể tiếp tục.")
+end
+
+-- Hàm dùng kỹ năng
+local function UseSkill(skillKey)
+    local keycode = Enum.KeyCode[skillKey]
+    -- Nhấn phím
+    VirtualInputManager:SendKeyEvent(true, keycode, false, game)
+    task.wait(0.2) -- Chờ một chút
+    -- Nhả phím
+    VirtualInputManager:SendKeyEvent(false, keycode, false, game)
+end
+
+
+-- Hàm chạy Auto Skill
+local function AutoSkillLoop()
+    while AutoSkillEnabled do
+        local skillUsed = false
+
+        for _, skill in ipairs({"Z", "X", "C", "V", "B", "N"}) do
+            if AutoSkillEnabled and SkillStates[skill] then
+                if IsSkillReady(skill) then -- Kiểm tra xem kỹ năng đã hồi chưa
+                    UseSkill(skill)
+                    skillUsed = true
+                end
+            end
+        end
+        
+        -- Nếu đã dùng ít nhất một kỹ năng, đợi 0.5 giây để tránh spam quá mức
+        if skillUsed then
+            task.wait(0.5)
+        else
+            task.wait(0.1) -- Nếu không có kỹ năng nào dùng được, đợi 0.1 giây rồi kiểm tra tiếp
+        end
+    end
+end
+
 
 --// Tween \\--
 local function GetDistance(Endpoint)
@@ -143,8 +221,6 @@ local function DisableAntiFall()
 end
 
 
-
-
 --// Get Closest \\---
 function IsEntitySelected(entity, selectedEntities)
     for _, selectedEntity in ipairs(selectedEntities) do
@@ -181,6 +257,7 @@ function getclosest(selectedEntities, parentFolder)
     return closestEntity
 end
 
+
 --// Tables \\--
 local AllowedBosses = {
     "Snow Trainee",
@@ -203,7 +280,90 @@ local AllowedBosses = {
     "Slasher",
     "Susamaru",
     "Yahaba",
+	"Bandit Kaden",
 }
+
+local BossLocationsMap1 = {
+    { Name = "Shiron", Position = Vector3.new(3128.58, 329.52, -3804) },
+    { Name = "Giyu", Position = Vector3.new(3010.59, 316.95, -2924.11) },
+    { Name = "Nezuko", Position = Vector3.new(3556.5, 342.21, -4565.22) },
+    { Name = "Slasher", Position = Vector3.new(4365.71, 342.21, -4438.91) },
+    { Name = "Sanemi", Position = Vector3.new(1654, 348.46, -3737.69) },
+    { Name = "Yahaba", Position = Vector3.new(1409.45, 315.9, -4647.8) },
+    { Name = "Susamaru", Position = Vector3.new(1367.45, 315.9, -4553.09) },
+    { Name = "Bandit Kaden", Position = Vector3.new(-546.917, 304.467, -2860.067) },
+    { Name = "Zanegutsu Kuuchie", Position = Vector3.new(-351.28, 425.36, -2331.425) },
+    { Name = "Sabito", Position = Vector3.new(1237.92, 275.42, -2807.998) }
+}
+
+local BossLocationsMap2 = {
+    { Name = "Akaza", Position = Vector3.new(2006.46, 556, -130.2) },
+    { Name = "Inosuke", Position = Vector3.new(1592.34, 299.98, -388.1) },
+    { Name = "Enme", Position = Vector3.new(1591.18, 483.61, -685.5775) },
+    { Name = "Flame Trainee", Position = Vector3.new(-1265, 600.57, -659.554) },
+    { Name = "Swampy", Position = Vector3.new(-1364.28, 600.96875, -223.2) },
+    { Name = "Sound Trainee", Position = Vector3.new(1881.34, 662.42, -2800.46) },
+    { Name = "Uzui", Position = Vector3.new(1460.45, 486.122, -3137.05) },
+    { Name = "Snow Trainee", Position = Vector3.new(255.18, 530.94, -2989.45) },
+    { Name = "Douma", Position = Vector3.new(-0.146, 512.331, -1674.79) },
+    { Name = "Muichiro Tokito", Position = Vector3.new(4513.83, 672.41, -559.748) },
+    { Name = "Rengoku", Position = Vector3.new(3654.3999, 672.91, -348.877) },
+    { Name = "Slasher", Position = Vector3.new(908.402, 487.295, -1351.5653) }
+}
+
+local Map1 = {
+    ["Kiribating Village"] = CFrame.new(120, 282, -1743),
+    ["Zapiwara Cave"] = CFrame.new(-38, 275, -2403),
+    ["Ushumaro Village"] = CFrame.new(-90, 354, -3170),
+    ["Butterfly Mansion"] = CFrame.new(3001, 316, -3806),
+    ["Final Selection"] = CFrame.new(5258, 365, -2422),
+    ["Zapiwara Mountain"] = CFrame.new(-366, 425, -2371),
+    ["Wind Trainer"] = CFrame.new(1797, 334, -3466),
+    ["Kabiwaru Village"] = CFrame.new(2015, 315, -3051),
+    ["Waroru Cave"] = CFrame.new(689, 261, -2469),
+    ["Ouwbayashi Home"] = CFrame.new(1241, 320, -4568),
+    ["Dangerous Woods"] = CFrame.new(3839, 342, -4177)
+}
+
+local Map2 = {
+    ["Nomay Village"] = CFrame.new(3562, 673, -2109),
+    ["Mugen Train Station"] = CFrame.new(783, 495, 900),
+    ["Wop City"] = CFrame.new(-31, 599, -431),
+    ["Village 2"] = CFrame.new(1215, 567, 95),
+    ["Cave 1"] = CFrame.new(4252, 671, 581),
+    ["Cave 2"] = CFrame.new(1182, 485, -1192),
+    ["Mist trainer location"] = CFrame.new(4324, 671, -569),
+    ["Akeza Cave"] = CFrame.new(1902, 554, -150),
+    ["Frozen Lake"] = CFrame.new(2049, 481, -769),
+    ["Beast Cave"] = CFrame.new(1840, 481, 37),
+    ["Wop's training grounds"] = CFrame.new(223, 595, 483),
+    ["Snowy Place"] = CFrame.new(379, 531, -2865),
+    ["Devourers Jaw"] = CFrame.new(480, 507, -1864),
+    ["Sound Cave"] = CFrame.new(1828, 487, -2770)
+}
+
+
+local SelectedMap = nil -- Mặc định không có Map nào được chọn
+local LocationsDropdown, BossesDropdown -- Lưu Dropdown để cập nhật danh sách
+local Map1List, Map2List, BossesMap1List, BossesMap2List = {}, {}, {}, {}
+local LocationsToUse, BossesToUse = {}, {}
+local ActiveBossLocations = {}
+
+-- Điền danh sách địa điểm & Boss CHỈ MỘT LẦN
+for name, _ in pairs(Map1) do
+    table.insert(Map1List, name)
+end
+for name, _ in pairs(Map2) do
+    table.insert(Map2List, name)
+end
+for name, _ in pairs(BossLocationsMap1) do
+    table.insert(BossesMap1List, name)
+end
+for name, _ in pairs(BossLocationsMap2) do
+    table.insert(BossesMap2List, name)
+end
+
+
 
 local AllowedMobs = {
     "Civilian",
@@ -300,12 +460,14 @@ local MainTab = Window:CreateTab({Name = "Main"})
 local MainSection = MainTab:CreateSection({Name = "Farming"})
 local Settings = MainTab:CreateSection({Name = "Settings"})
 local KillAura = MainTab:CreateSection({Name = "Kill Aura", Side = "Right"})
+local Teleports = MainTab:CreateSection({Name = "Teleports", Side = "Right"})
 local Info = MainTab:CreateSection({Name = "Info", Side = "Right"})
 local BossesTab = MainTab:CreateSection({Name = "Spawned Bosses", Side = "Left"})
 
 --// Misc Tab \\--
 local MiscTab = Window:CreateTab({Name = "Misc"})
 local MiscSection = MiscTab:CreateSection({Name = "Misc"})
+local AutoSkills = MiscTab:CreateSection({Name = "AutoSkills", Side = "Right"})
 
 
 --// Main/Farming Section \\--
@@ -337,12 +499,6 @@ MainSection:AddToggle({
     Flag = "FarmSelectedBosses",
     Callback = function (v)
         getgenv().Farm = v
-
-        if v then
-            print("Bật Farm!")
-        else
-            print("Tắt Farm!")
-
             if antifallActive ~= nil and antifallActive then
                 antifallActive = false
                 DisableAntiFall() -- Gọi hàm sửa lỗi để tắt AntiFall
@@ -352,10 +508,9 @@ MainSection:AddToggle({
                     local humanoidRootPart = plr.Character.HumanoidRootPart
                     local humanoid = plr.Character:FindFirstChildOfClass("Humanoid") 
                         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                    end
-                end
-            end
-        end
+            	end
+           end
+    end
 })
 
 
@@ -458,6 +613,119 @@ KillAura:AddDropdown({
     end
 })
 
+-- Toggle chọn Map 1
+Teleports:AddToggle({
+    Name = "Map 1",
+    Flag = "Map1Toggle",
+    Default = false,
+    Callback = function(State)
+        if State then
+            SelectedMap = "Map1"
+            Teleports.Flags["Map2Toggle"] = false -- Tắt Toggle Map 2 nếu Map 1 được chọn
+        else
+            if not Teleports.Flags["Map2Toggle"] then
+                SelectedMap = nil -- Nếu cả hai đều tắt, không chọn Map nào
+            end
+        end
+        UpdateLists()
+    end
+})
+
+-- Toggle chọn Map 2
+Teleports:AddToggle({
+    Name = "Map 2",
+    Flag = "Map2Toggle",
+    Default = false,
+    Callback = function(State)
+        if State then
+            SelectedMap = "Map2"
+            Teleports.Flags["Map1Toggle"] = false -- Tắt Toggle Map 1 nếu Map 2 được chọn
+        else
+            if not Teleports.Flags["Map1Toggle"] then
+                SelectedMap = nil -- Nếu cả hai đều tắt, không chọn Map nào
+            end
+        end
+        UpdateLists()
+    end
+})
+
+-- Dropdown danh sách địa điểm (ban đầu trống)
+LocationsDropdown = Teleports:AddDropdown({
+    Name = "Locations",
+    Nothing = "Select Location...",
+    Flag = "LocationSelect",
+    List = LocationsToUse, -- Cập nhật danh sách mới
+    Callback = function(State)
+        SelectedArea = State
+    end
+})
+
+-- Dropdown danh sách Boss (ban đầu trống)
+BossesDropdown = Teleports:AddDropdown({
+    Name = "Farm Bosses",
+    Nothing = "Select Boss...",
+    Flag = "BossSelect",
+    List = {}, -- Ban đầu danh sách rỗng
+    Callback = function(State)
+        SelectedBoss = State
+    end
+})
+
+Teleports:AddButton({
+    Name = "Skibidi To",
+    Callback = function()
+        local Player = game.Players.LocalPlayer
+        local Character = Player.Character or Player.CharacterAdded:Wait()
+        local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+        
+        if not HumanoidRootPart then
+            warn("⚠️ Lỗi: Không tìm thấy HumanoidRootPart!")
+            return
+        end
+
+        local TweenService = game:GetService("TweenService")
+        local TweenSpeed = 300 -- Tốc độ di chuyển
+
+        -- Kiểm tra SelectedArea hợp lệ
+        if not SelectedArea or SelectedArea == "" then
+            warn("⚠️ Lỗi: Chưa chọn khu vực để dịch chuyển!")
+            return
+        end
+
+        -- Xác định MapToUse dựa trên Map đã chọn
+        local MapToUse = {}
+        if SelectedMap == "Map1" then
+            MapToUse = Map1
+        elseif SelectedMap == "Map2" then
+            MapToUse = Map2
+        else
+            warn("⚠️ Lỗi: Chưa chọn Map hợp lệ!")
+            return
+        end
+
+        -- Kiểm tra Place hợp lệ
+        local Place = MapToUse[SelectedArea]
+        if not Place then
+            warn("⚠️ Lỗi: Không tìm thấy tọa độ của khu vực [" .. SelectedArea .. "] trong Map [" .. SelectedMap .. "]!")
+            return
+        end
+
+        -- Tính khoảng cách
+        local Magnitude = (HumanoidRootPart.Position - Place.Position).Magnitude
+        print("📍 Khoảng cách đến mục tiêu:", Magnitude)
+
+        -- Bắt đầu Tween để di chuyển
+        Teleporting = true
+        local TargetCFrame = Place * CFrame.new(0, 5, 0) -- Nâng cao nhân vật 5 đơn vị để tránh kẹt
+
+        local Cur = TweenService:Create(HumanoidRootPart, TweenInfo.new(Magnitude / TweenSpeed, Enum.EasingStyle.Linear), {CFrame = TargetCFrame})
+        Cur:Play()
+        Cur.Completed:Wait()
+
+        Teleporting = false
+        print("✅ Dịch chuyển thành công!")
+    end
+})
 
 
 --// Info \\--
@@ -544,7 +812,7 @@ MiscSection:AddDropdown({
     end
 })
 
-MiscSection:AddToggle({
+MiscSection:AddButton({
     Name = "Enable God Mode",
     Flag = "GN",
 	keybind = "G",
@@ -655,19 +923,108 @@ MiscSection:AddToggle({
     end
 })
 
+AutoSkills:AddToggle({
+    Name = "Auto Skill",
+    Flag = "AutoSkillEnabled",
+    Callback = function(state)
+        AutoSkillEnabled = state
+        local skill = SelectedSkill or "Z"
+
+        if state then
+            task.spawn(AutoSkillLoop)
+        end
+    end
+})
+
+for _, skill in ipairs({"Z", "X", "C", "V", "B", "N"}) do
+    AutoSkills:AddToggle({
+        Name = "Use Skill " .. skill,
+        Flag = "UseSkill" .. skill,
+        Callback = function(state)
+            SkillStates[skill] = state
+        end
+    })
+end
 
 
 --// Actual Code \\--
 
---// Inf War Fan Bugg \\--
-spawn(function()
-    while task.wait() do
-        if InfWarFans then
-            local args = {[1] = true}game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("war_Drums_remote"):FireServer(unpack(args))    
-            task.wait(2)
+-- Hàm cập nhật danh sách địa điểm & Bosses
+function UpdateLists()
+    local LocationsToUse, BossesToUse = {}, {}
+
+    if SelectedMap == "Map1" then
+        LocationsToUse = Map1List
+        BossesToUse = BossesMap1List
+    elseif SelectedMap == "Map2" then
+        LocationsToUse = Map2List
+        BossesToUse = BossesMap2List
+    end
+
+    -- Xóa Dropdown cũ
+    if LocationsDropdown then
+        LocationsDropdown:Remove()
+    end
+    if BossesDropdown then
+        BossesDropdown:Remove()
+    end
+
+    -- Tạo Dropdown mới với danh sách cập nhật
+    LocationsDropdown = Teleports:AddDropdown({
+        Name = "Locations",
+        Nothing = "Select Location...",
+        Flag = "LocationSelect",
+        List = LocationsToUse,
+        Callback = function(State)
+            SelectedArea = State
+        end
+    })
+
+    BossesDropdown = Teleports:AddDropdown({
+        Name = "Farm Bosses",
+        Nothing = "Select Boss...",
+        Flag = "BossSelect",
+        List = BossesToUse,
+        Callback = function(State)
+            SelectedBoss = State
+        end
+    })
+
+    -- Gọi UpdateBossList ngay sau khi cập nhật danh sách
+    UpdateBossList()
+end
+
+function UpdateBossList()
+    ActiveBossLocations = {} -- Xóa danh sách cũ trước khi cập nhật
+
+    local BossList = (SelectedMap == "Map1" and BossesMap1List) or (SelectedMap == "Map2" and BossesMap2List) or {}
+
+    -- Kiểm tra dữ liệu đầu vào
+    if type(BossList) ~= "table" then
+        warn("❌ BossList không hợp lệ! Giá trị nhận được:", BossList)
+        return
+    end
+
+    -- Lặp qua danh sách boss và kiểm tra dữ liệu hợp lệ trước khi thêm vào
+    for i, boss in ipairs(BossList) do
+        if type(boss) == "table" and boss.Name and boss.Position then
+            table.insert(ActiveBossLocations, boss)
+            print("🔥 Đã thêm Boss:", boss.Name, "Vị trí:", boss.Position)
+        else
+            warn("⚠️ Lỗi: Boss ở vị trí", i, "không hợp lệ! Giá trị nhận được:", boss)
         end
     end
-end)
+
+    -- Kiểm tra danh sách boss sau khi cập nhật
+    if #ActiveBossLocations == 0 then
+        warn("⚠️ Không có Boss nào khả dụng sau khi cập nhật!")
+    else
+        print("✅ Danh sách Boss hợp lệ:", ActiveBossLocations)
+    end
+end
+
+
+
 
 
 --// Auto Collect Chest \\--
@@ -893,6 +1250,7 @@ function getclosestSkills(parentFolder)
     return closestEntity
 end
 
+
 function getClosestPlayer(selectedPlayerName)
     local closestPlayer = nil
     local closestDistance = math.huge
@@ -986,7 +1344,7 @@ spawn(function()
 
 				if modelCFrame then
                 	game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("arrow_knock_back_damage",game.Players.LocalPlayer.Character,modelCFrame,v,200,200)
-                	task.wait(0.13)
+                	task.wait(0.275)
 				end
 
             end
@@ -1249,29 +1607,39 @@ plr.CharacterAdded:Connect(function()
     setMovementStats()
 end)
 
+--AutoBoss--
 
-task.spawn(function()
+spawn(function()
     while true do
-        task.wait(2) -- Kiểm tra mỗi 2 giây
+        if getgenv().Farm then
+            -- Debug: In ra danh sách boss trước khi kiểm tra
+            print("📌 Danh sách ActiveBossLocations:", ActiveBossLocations)
 
-        if not Humanoid then
-            print("[DEBUG] Humanoid is nil")
+            -- Kiểm tra xem danh sách boss có hợp lệ không
+            if not ActiveBossLocations or type(ActiveBossLocations) ~= "table" or #ActiveBossLocations == 0 then
+                warn("⚠️ Không có Boss nào khả dụng!")
+                
+                -- Debug: Nếu là bảng rỗng, in chi tiết
+                if type(ActiveBossLocations) == "table" then
+                    print("📌 ActiveBossLocations rỗng, số lượng boss:", #ActiveBossLocations)
+                else
+                    print("❌ ActiveBossLocations không phải bảng, giá trị:", ActiveBossLocations)
+                end
+                
+                task.wait(1)
+                continue
+            end
+
+            -- Tiếp tục xử lý nếu có boss
+            for _, boss in ipairs(ActiveBossLocations) do
+                print("🔥 Đang kiểm tra Boss:", boss.Name, "Vị trí:", boss.Position)
+            end
         else
-            print("[DEBUG] WalkSpeed:", Humanoid.WalkSpeed, "Expected:", WalkSpeed)
-            print("[DEBUG] JumpPower:", Humanoid.JumpPower, "Expected:", JumpPower)
-
-            if Humanoid.WalkSpeed ~= WalkSpeed then
-                Humanoid.WalkSpeed = WalkSpeed
-                print("[UPDATE] WalkSpeed changed to:", WalkSpeed)
-            end
-
-            if Humanoid.JumpPower ~= JumpPower then
-                Humanoid.JumpPower = JumpPower
-                print("[UPDATE] JumpPower changed to:", JumpPower)
-            end
+            task.wait(1) -- Giảm tải CPU khi Farm bị tắt
         end
     end
 end)
+
 
 
 --// Update Labels / Dropdowns \\--

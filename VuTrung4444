@@ -62,7 +62,7 @@ plr.CharacterAdded:Connect(function(Char)
     Humanoid.JumpPower = JumpPower
 end)
 
-
+local AtBoss = "false"
 local SkillCooldowns = {}
 local SelectedSkills = {"Z", "X", "C", "V"} -- Danh sách kỹ năng hợp lệ
 local skill = SelectedSkills[1] -- Lấy kỹ năng đầu tiên
@@ -118,25 +118,29 @@ end
 -- Hàm chạy Auto Skill
 local function AutoSkillLoop()
     while AutoSkillEnabled do
-        local skillUsed = false
+        if AtBoss then -- Chỉ dùng kỹ năng khi đã đến gần boss
+            local skillUsed = false
 
-        for _, skill in ipairs({"Z", "X", "C", "V", "B", "N"}) do
-            if AutoSkillEnabled and SkillStates[skill] then
-                if IsSkillReady(skill) then -- Kiểm tra xem kỹ năng đã hồi chưa
-                    UseSkill(skill)
-                    skillUsed = true
+            for _, skill in ipairs({"Z", "X", "C", "V", "B", "N"}) do
+                if AutoSkillEnabled and SkillStates[skill] then
+                    if IsSkillReady(skill) then 
+                        UseSkill(skill)
+                        skillUsed = true
+                    end
                 end
             end
-        end
-        
-        -- Nếu đã dùng ít nhất một kỹ năng, đợi 0.5 giây để tránh spam quá mức
-        if skillUsed then
-            task.wait(0.5)
+            
+            if skillUsed then
+                task.wait(0.5)
+            else
+                task.wait(0.1) 
+            end
         else
-            task.wait(0.1) -- Nếu không có kỹ năng nào dùng được, đợi 0.1 giây rồi kiểm tra tiếp
+            task.wait(0.1) -- Đợi tiếp nếu chưa tới boss
         end
     end
 end
+
 
 ---Flower----
 local RunService = game:GetService("RunService");
@@ -545,7 +549,6 @@ MainSection:AddToggle({
         getgenv().Snow = v
     end
 })
-
 
 MainSection:AddTextbox({
     Name = 'Player Target',
@@ -1181,86 +1184,6 @@ SelectedMobs = selectedMobs
 
 
 --// Farm \\--
-spawn(function()
-
-    local currentEntity
-    local antifallEnabled = false
-    local TweenFa
-    local farmActive = false
-
-    while wait() do
-        if getgenv().Farm then
-            if not farmActive then
-                farmActive = true
-                if not antifallEnabled then
-                    EnableAntiFall()
-                    antifallEnabled = true
-                end
-            end
-
-            local selectedEntities = {}
-            local parentFolder = game:GetService("Workspace").Mobs
-
-            for _, bossName in ipairs(SelectedBosses or {}) do
-                table.insert(selectedEntities, bossName)
-            end
-
-            for _, mobName in ipairs(SelectedMobs or {}) do
-                table.insert(selectedEntities, mobName)
-            end
-
-            local v = getclosest(selectedEntities, parentFolder, FarmModes)
-
-            if v then
-                if game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    if not currentEntity or currentEntity ~= v then
-                        currentEntity = v
-                        if TweenFa then
-                            TweenFa:Cancel()
-                        end
-                        repeat
-                            task.wait()
-                            local entityCFrame = v:GetModelCFrame() * FarmModes
-                            if GetDistance(entityCFrame) >= 25 and GetDistance(entityCFrame) < 150 then
-                                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
-                            else
-                                TweenFa = Tween(entityCFrame)
-                            end
-                        until not getgenv().Farm or not v.Parent or v.Humanoid.Health <= 0 or not v:IsDescendantOf(workspace)
-
-                        if IsEntitySelected(v, SelectedBosses) then
-                            print("Defeated boss:", v.Name)
-                        elseif IsEntitySelected(v, SelectedMobs) then
-                            print("Defeated mob:", v.Name)
-                        end
-                    end
-                else
-                    currentEntity = nil
-                    if TweenFa then
-                        TweenFa:Cancel()
-                    end
-                end
-            else
-                currentEntity = nil
-                if TweenFa then
-                    TweenFa:Cancel()
-                end
-            end
-        else
-            if farmActive then
-                farmActive = false
-                if antifallEnabled then
-                    DisableAntiFall()
-                    antifallEnabled = false
-                end
-                currentEntity = nil
-                if TweenFa then
-                    TweenFa:Cancel()
-                end
-            end
-        end
-    end
-end)
 
 function getclosestSkills(parentFolder)
     local closestEntity = nil
@@ -1648,67 +1571,63 @@ end)
 spawn(function()
     while true do
         if getgenv().Farm then
-            -- Cập nhật danh sách boss trước khi farm
             UpdateActiveBossLocations()
 
-            -- Kiểm tra xem danh sách boss có hợp lệ không
             if not ActiveBossLocations or type(ActiveBossLocations) ~= "table" or #ActiveBossLocations == 0 then
                 task.wait(1)
                 continue
             end
 
-            -- Sắp xếp danh sách boss theo khoảng cách
-            pcall(function()
-                table.sort(ActiveBossLocations, function(a, b)
-                    return GetDistance(a.Position) < GetDistance(b.Position)
-                end)
+            table.sort(ActiveBossLocations, function(a, b)
+                return GetDistance(a.Position) < GetDistance(b.Position)
             end)
 
             for _, boss in ipairs(ActiveBossLocations) do
-                if not getgenv().Farm then break end -- Dừng nếu Farm bị tắt
+                if not getgenv().Farm then break end 
 
                 local bossCFrame = CFrame.new(boss.Position)
                 local TweenFa = Tween(bossCFrame)
+                AtBoss = false -- Đặt về false khi bắt đầu di chuyển
 
-                -- Chờ đến khi đến gần boss
                 repeat
                     task.wait()
                 until not getgenv().Farm or GetDistance(bossCFrame) < 20
-                
-                if not getgenv().Farm then break end -- Kiểm tra lại nếu Farm bị tắt
 
-                if TweenFa then TweenFa:Cancel() end -- Hủy tween khi đã đến gần boss
+                if not getgenv().Farm then break end 
+                if TweenFa then TweenFa:Cancel() end 
 
-                -- Kiểm tra xem boss có tồn tại trong Workspace không
                 local bossEntity = getclosest({boss.Name}, game:GetService("Workspace").Mobs)
 
                 if bossEntity and bossEntity:FindFirstChild("Humanoid") then
                     repeat
                         task.wait()
-                        if not bossEntity.Parent or bossEntity.Humanoid.Health <= 0 then break end -- Nếu boss chết thì dừng
-                        
+                        if not bossEntity.Parent or bossEntity.Humanoid.Health <= 0 then break end 
+
                         local entityCFrame = bossEntity:GetModelCFrame() * FarmModes
 
                         if GetDistance(entityCFrame) >= 25 and GetDistance(entityCFrame) < 150 then
-                            -- Nếu khoảng cách hợp lý, dịch chuyển ngay
                             game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
                         else
-                            -- Nếu boss ở xa, dùng Tween để tiếp cận
                             TweenFa = Tween(entityCFrame)
                         end
+
+                        AtBoss = GetDistance(entityCFrame) < 25 -- Đánh dấu là đã tới gần boss
+
                     until not getgenv().Farm or not bossEntity.Parent or bossEntity.Humanoid.Health <= 0
 
-                    if TweenFa then TweenFa:Cancel() end -- Hủy Tween sau khi hạ gục boss
+                    if TweenFa then TweenFa:Cancel() end 
                 else
                     game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = bossCFrame
-                    task.wait(1) -- Đứng chờ 1 giây trước khi tiếp tục
+                    task.wait(1)
                 end
             end
         else
-            task.wait(1) -- Giảm tải CPU khi Farm bị tắt
+            task.wait(1) 
         end
     end
 end)
+
+
 
 ---Nhặt Hoa---
 local function fireproximityprompt(ProximityPrompt, Amount, Skip)
@@ -1828,3 +1747,5 @@ spawn(function()
         updateLabels()
     end
 end)
+
+for i,v in next, getconnections(Player.Idled) do v:Disable() end 

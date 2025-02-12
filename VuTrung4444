@@ -1518,6 +1518,13 @@ spawn(function()
             local visitedBosses = {}
 
             while getgenv().Farm do
+                -- Kiểm tra nếu nhân vật bị reset, cập nhật lại
+                if not game.Players.LocalPlayer.Character or not game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    repeat 
+                        task.wait()
+                    until game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                end
+
                 local remainingBosses = {}
 
                 -- Lọc ra những boss chưa đi qua
@@ -1546,6 +1553,7 @@ spawn(function()
                     -- Tránh di chuyển không cần thiết nếu đã gần
                     if GetDistance(bossCFrame) > 5 then
                         local TweenFa = Tween(bossCFrame)
+                        AtBoss = false -- Chưa đến boss
 
                         repeat
                             task.wait()
@@ -1556,6 +1564,9 @@ spawn(function()
                             TweenFa = nil
                         end 
                     end
+
+                    -- Đánh dấu đã đến gần boss
+                    AtBoss = true
 
                     -- Đợi 1 giây trước khi tiếp tục
                     task.wait(1)

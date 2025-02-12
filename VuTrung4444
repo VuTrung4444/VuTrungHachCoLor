@@ -1506,80 +1506,72 @@ end)
 
 --AutoBoss--
 spawn(function()
+    local visitedBosses = {}
+    local currentIndex = 1
+
     while true do
         if getgenv().Farm then
             UpdateActiveBossLocations()
-
-            if #ActiveBossLocations == 0 then
+            
+            -- Nếu đã đi qua toàn bộ boss, làm mới danh sách
+            if currentIndex > #ActiveBossLocations then
+                currentIndex = 1
+                visitedBosses = {}
+            end
+            
+            if not ActiveBossLocations or #ActiveBossLocations == 0 then
                 task.wait(1)
                 continue
             end
+            
+            local boss = ActiveBossLocations[currentIndex]
+            if not boss or visitedBosses[boss.Name] then
+                currentIndex = currentIndex + 1
+                continue
+            end
+            
+            local bossCFrame = CFrame.new(boss.Position)
+            local TweenFa = Tween(bossCFrame)
+            AtBoss = false
+            
+            repeat
+                task.wait()
+            until not getgenv().Farm or GetDistance(bossCFrame) < 20
 
-            local visitedBosses = {}
+            if not getgenv().Farm then break end 
+            if TweenFa then 
+                TweenFa:Cancel() 
+                TweenFa = nil
+            end 
 
-            while getgenv().Farm do
-                -- Kiểm tra nếu nhân vật bị reset, cập nhật lại
-                if not game.Players.LocalPlayer.Character or not game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    repeat 
-                        task.wait()
-                    until game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                end
+            local bossEntity = getclosest({boss.Name}, game:GetService("Workspace").Mobs)
+            if bossEntity and bossEntity:FindFirstChild("Humanoid") then
+                while getgenv().Farm and bossEntity.Parent and bossEntity.Humanoid.Health > 0 do
+                    task.wait()
 
-                local remainingBosses = {}
+                    local entityCFrame = bossEntity:GetModelCFrame() * FarmModes
 
-                -- Lọc ra những boss chưa đi qua
-                for _, boss in ipairs(ActiveBossLocations) do
-                    if not visitedBosses[boss.Name] then
-                        table.insert(remainingBosses, boss)
-                    end
-                end
-
-                -- Nếu đã đi qua tất cả, reset danh sách
-                if #remainingBosses == 0 then
-                    visitedBosses = {}
-                    remainingBosses = ActiveBossLocations
-                end
-
-                -- Sắp xếp theo khoảng cách gần nhất
-                table.sort(remainingBosses, function(a, b)
-                    return GetDistance(a.Position) < GetDistance(b.Position)
-                end)
-
-                for _, boss in ipairs(remainingBosses) do
-                    if not getgenv().Farm then break end 
-
-                    local bossCFrame = CFrame.new(boss.Position)
-
-                    -- Tránh di chuyển không cần thiết nếu đã gần
-                    if GetDistance(bossCFrame) > 5 then
-                        local TweenFa = Tween(bossCFrame)
-                        AtBoss = false -- Chưa đến boss
-
-                        repeat
-                            task.wait()
-                        until not getgenv().Farm or GetDistance(bossCFrame) < 20
-
-                        if TweenFa then 
-                            TweenFa:Cancel()
-                            TweenFa = nil
-                        end 
+                    if GetDistance(entityCFrame) >= 25 and GetDistance(entityCFrame) < 150 then
+                        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
+                    else
+                        if not TweenFa then 
+                            TweenFa = Tween(entityCFrame)
+                        end
                     end
 
-                    -- Đánh dấu đã đến gần boss
-                    AtBoss = true
-
-                    -- Đợi 1 giây trước khi tiếp tục
-                    task.wait(1)
-
-                    -- Đánh dấu đã đi qua boss này
-                    visitedBosses[boss.Name] = true
+                    AtBoss = GetDistance(entityCFrame) < 25
                 end
+            else
+                -- Đợi 1 giây trước khi chuyển boss
+                task.wait(1)
+                currentIndex = currentIndex + 1
             end
         else
             task.wait(1)
         end
     end
 end)
+
 
 ---Nhặt Hoa---
 local function fireproximityprompt(ProximityPrompt, Amount, Skip)

@@ -1577,7 +1577,7 @@ end)
 
 --// Player Stats \\--
 local plr = game.Players.LocalPlayer
-local function updateLabels()
+local function updateLabels(
     local playerData = game:GetService("ReplicatedStorage").Player_Data[plr.Name]
     if playerData then
         local statText = ""
@@ -1593,7 +1593,7 @@ local function updateLabels()
 
         infoLabel:Set(statText)
     end
-end
+end)
 
 repeat task.wait() until plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 local root = plr.Character:FindFirstChild("HumanoidRootPart")

@@ -1163,21 +1163,7 @@ spawn(function()
 end)
 
 --Eat souls--
-local DebrisFolder = workspace:FindFirstChild("Debree") or workspace:WaitForChild("Debree")
 
-Signals[#Signals + 1] = DebrisFolder.ChildAdded:Connect(function(v)
-    if getgenv().AutoEatSouls and v.Name == "Soul" then
-        task.spawn(function()
-            local Handle = v:FindFirstChild("Handle") or v:WaitForChild("Handle", 3) -- Timeout 3 giây
-            if not Handle then return end
-
-            local Eat = Handle:FindFirstChild("Eatthedamnsoul") or Handle:WaitForChild("Eatthedamnsoul", 3)
-            if not Eat then return end
-
-            Eat:FireServer()
-        end)
-    end
-end)
 
 --No Fog--
 MiscSection:AddToggle({

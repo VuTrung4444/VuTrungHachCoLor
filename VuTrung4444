@@ -1601,7 +1601,7 @@ local root = plr.Character:FindFirstChild("HumanoidRootPart")
 plr.CharacterAdded:Connect(function()
     task.wait(0.5)
     setMovementStats()
-end
+end)
 
 --AutoBoss--
 local FarmLoop = nil

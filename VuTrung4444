@@ -1593,7 +1593,7 @@ local function updateLabels()
 
         infoLabel:Set(statText)
     end
-end)
+end
 
 repeat task.wait() until plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 local root = plr.Character:FindFirstChild("HumanoidRootPart")

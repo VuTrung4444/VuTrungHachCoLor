@@ -159,7 +159,16 @@ local NextFrame = RunService.Heartbeat;
 local VirtualUser = game:GetService("VirtualUser")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local DrumRemote = Remotes:WaitForChild("war_Drums_remote")
+local Map = Workspace:WaitForChild("Map")
 
+
+
+
+local activeToggle = nil
+local toggles = {}
 
 --// Tween \\--
 local function GetDistance(Endpoint)
@@ -427,25 +436,19 @@ local mobs = {}
 local GodModes = {
 	"scythe_asteroid_reap",
     "Water_Surface_Slash",
-    "Water_fall_basin",
     "insect_breathing_dance_of_the_centipede",
     "blood_burst_explosive_choke_slam",
     "explosive_demon_art_blood_burst",
     "Wind_breathing_black_wind_mountain_mist",
     "flame_breathing_flaming_eruption",
-   
     "Beast_breathing_devouring_slash",
-    "akaza_flashing_williow_skillasd",
     "akaza_bda_compass_needle",
     "dream_bda_flesh_monster",
     "swamp_bda_swamp_domain",
-    "snow_breatihng_layers_frost",
     "snow_breathing_illusory_Storm",
     "sound_breathing_smoke_screen",
     "ice_demon_art_bodhisatva",
 }
-
-getgenv().GodSelected = GodModes[1]
 
 --// Kill Aura \\--
 local function attack(method)
@@ -500,15 +503,20 @@ local Settings = MainTab:CreateSection({Name = "Settings"})
 local KillAura = MainTab:CreateSection({Name = "Kill Aura", Side = "Right"})
 local Teleports = MainTab:CreateSection({Name = "Teleports", Side = "Right"})
 local Info = MainTab:CreateSection({Name = "Info", Side = "Right"})
-local BossesTab = MainTab:CreateSection({Name = "Spawned Bosses", Side = "Left"})
+local BossesTab = MainTab:CreateSection({Name = "", Side = "Left"})
 
 
 --// Misc Tab \\--
 local MiscTab = Window:CreateTab({Name = "Misc"})
 local MiscSection = MiscTab:CreateSection({Name = "Misc"})
+local GodModeQuick = MiscTab:CreateSection({Name = "GMQ", Side = "Left"})
 local AutoSkills = MiscTab:CreateSection({Name = "AutoSkills", Side = "Right"})
 local SpeedAndJump = MiscTab:CreateSection({Name = "Speed&Jump", Side = "Right"})
-local GodModeQuick = MiscTab:CreateSection({Name = "GMQ", Side = "Right"})
+local Ect = MiscTab:CreateSection({Name = "Ect", Side = "Right"})
+
+local Debree = Workspace:WaitForChild("Debree")
+local EctFolder = ReplicatedStorage:WaitForChild("Misc")
+local Clashing = EctFolder:WaitForChild("Clashing")
 
 MainSection:AddToggle({
     Name = "Farm",
@@ -807,18 +815,8 @@ SpeedAndJump:AddSlider({
     end
 })
 
-
-MiscSection:AddDropdown({
-    Name = "God mode Selection",
-    Flag = "Gm",
-    List = GodModes,
-    Callback = function(v)
-        getgenv().GodSelected = v
-    end
-})
-
 --GodModeState--
-local godModeToggle = MiscSection:AddToggle({
+local godModeToggle = GodModeQuick:AddToggle({
     Name = "Enable God Mode",
     Flag = "ENG_Toggle",
     Callback = function(v)
@@ -847,13 +845,47 @@ GodModeQuick:AddButton({
     end
 })
 
+for _, godMode in ipairs(GodModes) do
+    local toggle = GodModeQuick:AddToggle({
+        Name = godMode,
+        Flag = "Gm_" .. godMode, -- Thêm Flag để quản lý dễ dàng hơn nếu cần
+        Callback = function(state)
+            if state then
+                -- Tắt toggle trước đó nếu có và khác với toggle hiện tại
+                if activeToggle and activeToggle ~= toggle then
+                    activeToggle:SetState(false)
+                end
+                -- Cập nhật toggle hiện tại và thiết lập GodSelected
+                activeToggle = toggle
+                getgenv().GodSelected = godMode
+                print("God Mode Selected: " .. godMode)
+            else
+                -- Chỉ clear nếu chính toggle hiện tại bị tắt
+                if activeToggle == toggle then
+                    activeToggle = nil
+                    getgenv().GodSelected = nil
+                    print("God Mode Deselected")
+                end
+            end
+        end
+    })
+
+    -- Lưu trữ toggle để có thể kiểm soát sau này nếu cần
+    toggles[godMode] = toggle
+end
+
+
 MiscSection:AddToggle({
-    Name = "Inf Warn Fan Buff",
-    Flag = "WarnFanBug",
-    Keybind = false,
-    Callback = function (v)
-        InfWarFans = v
-    end
+    Name = "War Drums",
+    Value = false, 
+    Flag = "WarDrums",
+    Callback = function(State)
+        TLROAPSMG = State 
+        while TLROAPSMG and IsOpen() do 
+            DrumRemote:FireServer(true)
+            task.wait(7.5)
+        end     
+    end 
 })
 
 MiscSection:AddToggle({
@@ -882,26 +914,6 @@ MiscSection:AddToggle({
     end
 })
 
-MiscSection:AddToggle({
-    Name = "Inf Breathing",
-    Flag = "InfBreathing",
-    Keybind = false,
-    Callback = function (v)
-        InfBreathing = v
-    end
-})
-
-
-
-
-MiscSection:AddToggle({
-    Name = "Inf Stamina",
-    Flag = "InfStamina",
-    Keybind = false,
-    Callback = function (v)
-        InfStamina = v
-    end
-})
 
 MiscSection:AddToggle({
     Name = "Thunder Mode [Human]",
@@ -975,6 +987,85 @@ for _, skill in ipairs({"Z", "X", "C", "V", "B", "N"}) do
     })
 end
 
+local AutoEatSouls = false
+
+Ect:AddToggle({
+    Name = "Auto Eat Souls",
+    Value = false,
+    Flag = "Souls",
+    Callback = function(State)
+        AutoEatSouls = State
+    end
+})
+
+Ect:AddToggle({
+    Name = "Auto Collect Orbs",
+    Value = false, 
+    Flag = "AutoOrb",
+    Callback = function(State)
+        LIPJRMAL = State 
+        while LIPJRMAL and IsOpen() do 
+            for i,v in next, Map:GetChildren() do 
+                if v:IsA("Model") and v:FindFirstChild("Sound") and (not v.Name:match("Insta")) then 
+                    for i1,v1 in next, v:GetChildren() do 
+                        if v1:FindFirstChild("TouchInterest") then 
+                            v:PivotTo(HumanoidRootPart.CFrame)
+                        end 
+                    end 
+                end 
+            end 
+            task.wait(0.5)
+        end 
+    end 
+})
+
+local Formatted = ("%svs"):format(Player.Name)
+Ect:AddToggle({
+    Name = "Auto Clash",
+    Value = false, 
+    Flag = "AutoClash",
+    Callback = function(State)
+        LRIEPMFLA = State 
+        while LRIEPMFLA and IsOpen() do -- what the fuck is this
+            local ClashFolder = Debree:FindFirstChild("clash_folder") 
+            if ClashFolder then 
+                for i,v in next, ClashFolder:GetChildren() do 
+                    if v.Name:find(Formatted) then 
+                        local Points = v:FindFirstChild(Player.Name) 
+                        if not Points then continue end 
+                        spawn(function()
+                            task.wait(7.5) 
+                            game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("Change_Value", Points, 99999999999)
+                        end)
+                    else 
+                        for i1,Points in next, v:GetChildren() do 
+                            if Players:FindFirstChild(Points.Name) then 
+                                spawn(function()
+                                    task.wait(7.5) 
+                                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("Change_Value", Points, 99999999999)
+                                end)
+                            end 
+                        end 
+                    end 
+                end 
+            end 
+            local Found = Clashing:FindFirstChild(Player.Name)
+            local Points = Found and Found:FindFirstChild("Points") 
+            if Points then
+                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("Change_Value", Points, 99999999999)  
+            end 
+        end 
+    end 
+})
+
+Ect:AddButton({
+    Name = "Reset",
+    Callback = function()
+        Humanoid.Health = 0 
+        task.wait(0.5)
+        Humanoid.Health = 0
+    end 
+})
 
 --// Actual Code \\--
 
@@ -1066,7 +1157,19 @@ spawn(function()
                     end
                 end
             end
-        end
+		end 
+		
+    end
+end)
+
+--Eat souls--
+local DebrisFolder = workspace:FindFirstChild("Debree") or workspace:WaitForChild("Debree")
+
+Signals[#Signals + 1] = DebrisFolder.ChildAdded:Connect(function(v)
+    if AutoEatSouls and v.Name == "Soul" then
+        local Handle = v:WaitForChild("Handle")
+        local Eat = Handle:WaitForChild("Eatthedamnsoul")
+        Eat:FireServer()
     end
 end)
 
@@ -1088,25 +1191,6 @@ MiscSection:AddToggle({
         end
     end
 })
-
---// Inf Breathing/Stam \\--
-
-spawn(function()
-    while task.wait() do
-        if InfStamina then
-            getrenv()._G.AddStamina("gpthebest", 50)
-        end
-    end
-end)
-
-spawn(function()
-    while task.wait() do
-        if InfBreathing then
-            getrenv()._G.AddBreath("gpthebest", 50)
-        end
-    end
-end)
-
 
 --// Inf iFrames \\--
 spawn(function()

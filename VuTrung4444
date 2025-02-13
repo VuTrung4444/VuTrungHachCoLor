@@ -1604,8 +1604,14 @@ plr.CharacterAdded:Connect(function()
 end)
 
 --AutoBoss--
+local FarmLoop = nil
+
 local function startFarmLoop()
-    spawn(function()
+    if FarmLoop then -- Nếu đã có vòng lặp cũ thì dừng nó trước
+        FarmLoop:Disconnect()
+    end
+
+    FarmLoop = task.spawn(function()
         local defeatedBosses = {}
         local currentBossIndex = 1
         local bossCount = #AllowedBosses
@@ -1614,7 +1620,7 @@ local function startFarmLoop()
             local player = game.Players.LocalPlayer
             while not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") do
                 player.CharacterAdded:Wait()
-                task.wait(0.5)
+                task.wait(1)
             end
         end
 
@@ -1702,13 +1708,14 @@ game.Players.LocalPlayer.CharacterAdded:Connect(function()
 end)
 
 game:GetService("RunService").Heartbeat:Connect(function()
-    if getgenv().Farm and not _G.FarmLoopActive then
-        _G.FarmLoopActive = true
+    if getgenv().Farm and not FarmLoop then
         startFarmLoop()
-    elseif not getgenv().Farm then
-        _G.FarmLoopActive = false
+    elseif not getgenv().Farm and FarmLoop then
+        task.cancel(FarmLoop)
+        FarmLoop = nil
     end
 end)
+
 
 
 

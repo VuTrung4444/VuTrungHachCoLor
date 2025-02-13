@@ -1166,10 +1166,16 @@ end)
 local DebrisFolder = workspace:FindFirstChild("Debree") or workspace:WaitForChild("Debree")
 
 Signals[#Signals + 1] = DebrisFolder.ChildAdded:Connect(function(v)
-    if AutoEatSouls and v.Name == "Soul" then
-        local Handle = v:WaitForChild("Handle")
-        local Eat = Handle:WaitForChild("Eatthedamnsoul")
-        Eat:FireServer()
+    if getgenv().AutoEatSouls and v.Name == "Soul" then
+        task.spawn(function()
+            local Handle = v:FindFirstChild("Handle") or v:WaitForChild("Handle", 3) -- Timeout 3 giây
+            if not Handle then return end
+
+            local Eat = Handle:FindFirstChild("Eatthedamnsoul") or Handle:WaitForChild("Eatthedamnsoul", 3)
+            if not Eat then return end
+
+            Eat:FireServer()
+        end)
     end
 end)
 

@@ -1604,25 +1604,30 @@ plr.CharacterAdded:Connect(function()
 end)
 
 --AutoBoss--
-spawn(function()
-    local defeatedBosses = {}
-    local currentBossIndex = 1
-    local bossCount = #AllowedBosses
+local function startFarmLoop()
+    spawn(function()
+        local defeatedBosses = {}
+        local currentBossIndex = 1
+        local bossCount = #AllowedBosses
 
-    local function waitForCharacter()
-        local player = game.Players.LocalPlayer
-        while not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") do
-            player.CharacterAdded:Wait()
-            task.wait(0.5)
+        local function waitForCharacter()
+            local player = game.Players.LocalPlayer
+            while not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") do
+                player.CharacterAdded:Wait()
+                task.wait(0.5)
+            end
         end
-    end
 
-    while true do
-        if getgenv().Farm then
+        local function resetBossIndex()
+            currentBossIndex = 1
+        end
+
+        resetBossIndex()
+
+        while getgenv().Farm do
             waitForCharacter()
             UpdateActiveBossLocations()
 
-            -- Chọn boss gần nhất khi bắt đầu farm
             if currentBossIndex == 1 then
                 table.sort(ActiveBossLocations, function(a, b)
                     return GetDistance(a.Position) < GetDistance(b.Position)
@@ -1646,6 +1651,13 @@ spawn(function()
 
             repeat
                 task.wait()
+                if not game.Players.LocalPlayer.Character then
+                    if TweenFa then
+                        TweenFa:Cancel()
+                        TweenFa = nil
+                    end
+                    break
+                end
             until not getgenv().Farm or GetDistance(bossCFrame) < 20
 
             if not getgenv().Farm then break end
@@ -1657,7 +1669,9 @@ spawn(function()
             local bossEntity = getclosest({boss.Name}, game:GetService("Workspace").Mobs)
             if bossEntity and bossEntity:FindFirstChild("Humanoid") then
                 while getgenv().Farm and bossEntity.Parent and bossEntity.Humanoid.Health > 0 do
-                    waitForCharacter()
+                    if not game.Players.LocalPlayer.Character then
+                        break
+                    end
                     task.wait()
 
                     local entityCFrame = bossEntity:GetModelCFrame() * FarmModes
@@ -1673,15 +1687,30 @@ spawn(function()
                     AtBoss = GetDistance(entityCFrame) < 25
                 end
             else
-                task.wait(1) -- Chờ 1 giây nếu boss chưa xuất hiện
+                task.wait(1)
             end
 
             currentBossIndex = (currentBossIndex % bossCount) + 1
-        else
-            task.wait(1)
         end
+    end)
+end
+
+game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    if getgenv().Farm then
+        startFarmLoop()
     end
 end)
+
+game:GetService("RunService").Heartbeat:Connect(function()
+    if getgenv().Farm and not _G.FarmLoopActive then
+        _G.FarmLoopActive = true
+        startFarmLoop()
+    elseif not getgenv().Farm then
+        _G.FarmLoopActive = false
+    end
+end)
+
+
 
 
 ---Nhặt Hoa---

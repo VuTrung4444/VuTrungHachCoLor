@@ -1796,7 +1796,7 @@ spawn(function()
     while task.wait(1) do
         if AutoCollectLilys then
             local attempts = 0
-            repeat
+            while AutoCollectLilys do
                 task.wait(0.5)
                 local flower = getFlower()
 
@@ -1804,31 +1804,57 @@ spawn(function()
                     attempts = attempts + 1
                     if attempts >= 5 then
                         warn("⚠️ Không tìm thấy hoa sau 5 lần thử.")
-                        break
+                        task.wait(2) -- Nghỉ trước khi thử lại để giảm tải
                     end
                     continue
                 end
 
                 if flower.WorldPivot then
                     local tween, duration = TweenToPosition(flower.WorldPivot.Position, 250)
-                    task.wait(duration + 0.5) -- Chờ cho tween hoàn thành
 
+                    -- Giới hạn thời gian tối đa cho việc di chuyển + nhặt hoa
+                    local maxTime = duration + 5 -- 5 giây dự phòng cho nhặt hoa
+                    local startTime = tick()
+
+                    -- Đợi tween chạy xong hoặc hết thời gian tối đa
+                    repeat
+                        task.wait()
+                    until not tween.PlaybackState == Enum.PlaybackState.Playing or (tick() - startTime > maxTime)
+
+                    -- Nếu hết thời gian thì hủy tween (phòng khi lag)
+                    if tween.PlaybackState == Enum.PlaybackState.Playing then
+                        tween:Cancel()
+                    end
+
+                    -- Cố gắng nhặt hoa
+                    local collected = false
                     for _, v in next, flower:GetDescendants() do
                         if v:IsA("ProximityPrompt") then
                             fireproximityprompt(v, 1, true)
+                            collected = true
                         end
+                    end
+
+                    -- Đợi hoa biến mất hoặc hết thời gian chờ tối đa
+                    local waitTime = tick()
+                    while tick() - waitTime < 6 do
+                        task.wait(0.5)
+                        if not flower.Parent then
+                            break
+                        end
+                    end
+
+                    -- Nếu hoa không biến mất, coi như thất bại và ghi nhận lỗi
+                    if flower.Parent then
+                        warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất!")
                     end
                 else
                     warn("⚠️ WorldPivot của hoa không tồn tại!")
                 end
 
-                local startTime = tick()
-                while tick() - startTime < 6 do
-                    task.wait(0.5)
-                    if not flower.Parent then break end
-                end
-
-            until not AutoCollectLilys
+                -- Reset lại số lần thử khi đã xử lý xong một bông hoa (thành công hoặc thất bại)
+                attempts = 0
+            end
         end
     end
 end)

@@ -1810,7 +1810,7 @@ spawn(function()
                 end
 
                 if flower.WorldPivot then
-                    local tween, duration = TweenToPosition(flower.WorldPivot.Position, 100)
+                    local tween, duration = TweenToPosition(flower.WorldPivot.Position, 250)
                     task.wait(duration + 0.5) -- Chờ cho tween hoàn thành
 
                     for _, v in next, flower:GetDescendants() do
@@ -1832,4 +1832,3 @@ spawn(function()
         end
     end
 end)
-

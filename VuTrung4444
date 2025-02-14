@@ -702,14 +702,11 @@ Teleports:AddButton({
         local Player = game.Players.LocalPlayer
         local Character = Player.Character or Player.CharacterAdded:Wait()
         local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-        
+
         if not HumanoidRootPart then
             warn("⚠️ Lỗi: Không tìm thấy HumanoidRootPart!")
             return
         end
-
-        local TweenService = game:GetService("TweenService")
-        local TweenSpeed = 300 -- Tốc độ di chuyển
 
         -- Kiểm tra SelectedArea hợp lệ
         if not SelectedArea or SelectedArea == "" then
@@ -735,19 +732,8 @@ Teleports:AddButton({
             return
         end
 
-        -- Tính khoảng cách
-        local Magnitude = (HumanoidRootPart.Position - Place.Position).Magnitude
-        print("📍 Khoảng cách đến mục tiêu:", Magnitude)
-
-        -- Bắt đầu Tween để di chuyển
-        Teleporting = true
-        local TargetCFrame = Place * CFrame.new(0, 5, 0) -- Nâng cao nhân vật 5 đơn vị để tránh kẹt
-
-        local Cur = TweenService:Create(HumanoidRootPart, TweenInfo.new(Magnitude / TweenSpeed, Enum.EasingStyle.Linear), {CFrame = TargetCFrame})
-        Cur:Play()
-        Cur.Completed:Wait()
-
-        Teleporting = false
+        -- Dịch chuyển tức thời
+        HumanoidRootPart.CFrame = Place * CFrame.new(0, 5, 0)
         print("✅ Dịch chuyển thành công!")
     end
 })
@@ -1756,7 +1742,6 @@ end)
 
 ---Nhặt Hoa---
 local function fireproximityprompt(ProximityPrompt, Amount, Skip)
-
     local HoldDuration = ProximityPrompt.HoldDuration
     if Skip then
         ProximityPrompt.HoldDuration = 0
@@ -1771,7 +1756,6 @@ local function fireproximityprompt(ProximityPrompt, Amount, Skip)
     ProximityPrompt.HoldDuration = HoldDuration
 end
 
-
 local function ImprovedTeleport(Target)
     if (typeof(Target) == "Instance" and Target:IsA("BasePart")) then
         Target = Target.Position;
@@ -1783,20 +1767,7 @@ local function ImprovedTeleport(Target)
     if (not HRP) then
         return;
     end;
-    local StartingPosition = HRP.Position;
-    local PositionDelta = (Target - StartingPosition);
-    local StartTime = tick();
-    local TotalDuration = (StartingPosition - Target).magnitude / TeleportSpeed;
-    repeat
-        NextFrame:Wait();
-        local Delta = tick() - StartTime;
-        local Progress = math.min(Delta / TotalDuration, 1);
-        local MappedPosition = StartingPosition + (PositionDelta * Progress);
-        HRP.Velocity = Vector3.new();
-        HRP.CFrame = CFrame.new(MappedPosition);
-    until (HRP.Position - Target).magnitude <= TeleportSpeed / 2;
-    HRP.Anchored = false;
-    HRP.CFrame = CFrame.new(Target);
+    HRP.CFrame = CFrame.new(Target)
 end;
 
 local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
@@ -1820,11 +1791,11 @@ local function getFlower()
 end
 
 spawn(function()
-    while task.wait() do
+    while task.wait(1) do -- Giảm tốc độ vòng lặp để giảm tải
         if AutoCollectLilys then
             local attempts = 0
             repeat
-                task.wait()
+                task.wait(1)
                 local flower = getFlower()
 
                 if not flower then
@@ -1839,7 +1810,7 @@ spawn(function()
                 -- Teleport đến hoa nếu WorldPivot tồn tại
                 if flower.WorldPivot then
                     ImprovedTeleport(flower.WorldPivot.Position)
-                    task.wait(0.25)
+                    task.wait(0.5)
 
                     for _, v in next, flower:GetDescendants() do
                         if v:IsA("ProximityPrompt") then
@@ -1853,7 +1824,7 @@ spawn(function()
                 -- Chờ hoa biến mất trước khi tìm hoa tiếp theo
                 local startTime = tick()
                 while tick() - startTime < 6 do
-                    task.wait()
+                    task.wait(0.5)
                     if not flower.Parent then break end
                 end
 

@@ -1741,6 +1741,10 @@ end)
 
 
 ---Nhặt Hoa---
+local TweenService = game:GetService("TweenService")
+local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
+local Player = game.Players.LocalPlayer
+
 local function fireproximityprompt(ProximityPrompt, Amount, Skip)
     local HoldDuration = ProximityPrompt.HoldDuration
     if Skip then
@@ -1756,29 +1760,27 @@ local function fireproximityprompt(ProximityPrompt, Amount, Skip)
     ProximityPrompt.HoldDuration = HoldDuration
 end
 
-local function ImprovedTeleport(Target)
-    if (typeof(Target) == "Instance" and Target:IsA("BasePart")) then
-        Target = Target.Position;
-    end;
-    if (typeof(Target) == "CFrame") then
-        Target = Target.p
-    end;
-    local HRP = (Player.Character and Player.Character:FindFirstChild("HumanoidRootPart"));
-    if (not HRP) then
-        return;
-    end;
-    HRP.CFrame = CFrame.new(Target)
-end;
+local function TweenToPosition(TargetPosition, Speed)
+    local HRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not HRP then return end
 
-local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
+    local distance = (HRP.Position - TargetPosition).magnitude
+    local duration = distance / Speed
+
+    local TweenInfoData = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    local Tween = TweenService:Create(HRP, TweenInfoData, {CFrame = CFrame.new(TargetPosition)})
+    Tween:Play()
+
+    return Tween, duration
+end
 
 local function getFlower()
     local chr = Player.Character
     local root = chr and chr:FindFirstChild("HumanoidRootPart")
-    if not root then return nil end -- Tránh lỗi nếu root bị nil
+    if not root then return nil end
 
-    local dist, flower = math.huge
-    for i, v in next, flowers:GetChildren() do
+    local dist, flower = math.huge, nil
+    for _, v in next, flowers:GetChildren() do
         if v:IsA('Model') then
             local mag = (root.Position - v.WorldPivot.Position).magnitude
             if mag < dist then
@@ -1791,11 +1793,11 @@ local function getFlower()
 end
 
 spawn(function()
-    while task.wait(1) do -- Giảm tốc độ vòng lặp để giảm tải
+    while task.wait(1) do
         if AutoCollectLilys then
             local attempts = 0
             repeat
-                task.wait(1)
+                task.wait(0.5)
                 local flower = getFlower()
 
                 if not flower then
@@ -1807,10 +1809,9 @@ spawn(function()
                     continue
                 end
 
-                -- Teleport đến hoa nếu WorldPivot tồn tại
                 if flower.WorldPivot then
-                    ImprovedTeleport(flower.WorldPivot.Position)
-                    task.wait(0.5)
+                    local tween, duration = TweenToPosition(flower.WorldPivot.Position, 100)
+                    task.wait(duration + 0.5) -- Chờ cho tween hoàn thành
 
                     for _, v in next, flower:GetDescendants() do
                         if v:IsA("ProximityPrompt") then
@@ -1821,7 +1822,6 @@ spawn(function()
                     warn("⚠️ WorldPivot của hoa không tồn tại!")
                 end
 
-                -- Chờ hoa biến mất trước khi tìm hoa tiếp theo
                 local startTime = tick()
                 while tick() - startTime < 6 do
                     task.wait(0.5)
@@ -1832,3 +1832,4 @@ spawn(function()
         end
     end
 end)
+

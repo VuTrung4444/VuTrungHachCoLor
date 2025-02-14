@@ -326,7 +326,7 @@ local AllowedBosses = {
     "Slasher",
     "Susamaru",
     "Yahaba",
-"Bandit Kaden",
+	"Bandit Kaden",
 }
 
 local BossLocationsMap1 = {
@@ -626,16 +626,38 @@ KillAura:AddToggle({
 })
 
 
-KillAura:AddDropdown({
-    Name = "Weapon",
-    List = {"Sword","Combat","Scythe","Fans","Claw"},
-    Flag = "KillAuraWeapon",
-    Nothing = "Select Method...",
-	Value = "Scythe",
-    Callback = function(Chosen)
-        Method = Chosen 
-    end
-})
+local weapons = {"Sword", "Combat", "Scythe", "Fans", "Claw"}
+local toggles = {}
+local activeToggle = nil
+
+for _, weapon in ipairs(weapons) do
+    local toggle = KillAura:AddToggle({
+        Name = weapon,
+        Flag = "KillAuraWeapon_" .. weapon,
+        Callback = function(state)
+            if state then
+                -- Tắt toggle trước đó nếu có và khác với toggle hiện tại
+                if activeToggle and activeToggle ~= toggle then
+                    activeToggle:SetState(false)
+                end
+                -- Cập nhật toggle hiện tại và thiết lập Method
+                activeToggle = toggle
+                Method = weapon
+                print("Weapon Selected: " .. weapon)
+            else
+                -- Chỉ clear nếu chính toggle hiện tại bị tắt
+                if activeToggle == toggle then
+                    activeToggle = nil
+                    Method = nil
+                    print("Weapon Deselected")
+                end
+            end
+        end
+    })
+
+    toggles[weapon] = toggle
+end
+
 
 -- Toggle chọn Map 1
 Teleports:AddToggle({
@@ -1839,4 +1861,3 @@ spawn(function()
         end
     end
 end)
-

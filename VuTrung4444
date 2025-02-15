@@ -1742,8 +1742,8 @@ end)
 
 ---Nhặt Hoa---
 local TweenService = game:GetService("TweenService")
-local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
 local Player = game.Players.LocalPlayer
+local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
 
 local function fireproximityprompt(ProximityPrompt, Amount, Skip)
     local HoldDuration = ProximityPrompt.HoldDuration
@@ -1774,16 +1774,25 @@ local function TweenToPosition(TargetPosition, Speed)
     return Tween, duration
 end
 
+local function collectFlower(flower)
+    local collected = false
+    for _, v in next, flower:GetDescendants() do
+        if v:IsA("ProximityPrompt") then
+            fireproximityprompt(v, 1, true)
+            collected = true
+        end
+    end
+    return collected
+end
+
 local CollectFlowersLoop = nil
 
 local function startCollectFlowersLoop()
     if CollectFlowersLoop then
-        CollectFlowersLoop:Disconnect()
+        task.cancel(CollectFlowersLoop)
     end
 
     CollectFlowersLoop = task.spawn(function()
-        local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
-
         local function getFlower()
             local chr = Player.Character
             local root = chr and chr:FindFirstChild("HumanoidRootPart")
@@ -1809,16 +1818,17 @@ local function startCollectFlowersLoop()
                 local tween, duration = TweenToPosition(flower.WorldPivot.Position, 250)
                 task.wait(duration + 0.5)
 
-                for _, v in next, flower:GetDescendants() do
-                    if v:IsA("ProximityPrompt") then
-                        fireproximityprompt(v, 1, true)
-                    end
-                end
+                local success = collectFlower(flower)
 
-                local startTime = tick()
-                while tick() - startTime < 6 do
-                    task.wait(0.5)
-                    if not flower.Parent then break end
+                if not success then
+                    warn("⚠️ Không nhặt được hoa, bỏ qua...")
+                    task.wait(1)
+                else
+                    local startTime = tick()
+                    while tick() - startTime < 6 do
+                        task.wait(0.5)
+                        if not flower.Parent then break end
+                    end
                 end
             else
                 warn("⚠️ Không tìm thấy hoa, đợi và thử lại")

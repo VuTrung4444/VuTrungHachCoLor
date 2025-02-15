@@ -1733,6 +1733,20 @@ end)
 
 
 ---Nhặt Hoa---
+MiscSection:AddToggle({
+    Name = "Auto Collect Lilys",
+    Flag = "CollectAllLilys",
+    Keybind = false,
+    Callback = function(v)
+        AutoCollectLilys = v
+        if v then
+            startCollecting()
+        else
+            stopCollecting()
+        end
+    end
+})
+
 local TweenService = game:GetService("TweenService")
 local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
 local Player = game.Players.LocalPlayer
@@ -1859,7 +1873,7 @@ local function startCollecting()
                 end
 
                 local waitTime = tick()
-                while tick() - waitTime < 2 do
+                while tick() - waitTime < 8 do
                     task.wait(0.5)
                     if not flower.Parent then
                         break
@@ -1867,14 +1881,15 @@ local function startCollecting()
                 end
 
                 if flower.Parent then
-                    warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất!")
+                    warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất! Chuyển sang hoa khác...")
+                    continue
                 end
             else
                 warn("⚠️ WorldPivot của hoa không tồn tại!")
             end
         end
 
-        collectingThread = false
+        collectingThread = false -- Đặt lại khi dừng
         warn("🌸 Đã dừng thu thập hoa!")
     end)
 end
@@ -1882,17 +1897,3 @@ end
 local function stopCollecting()
     AutoCollectLilys = false
 end
-
-MiscSection:AddToggle({
-    Name = "Auto Collect Lilys",
-    Flag = "CollectAllLilys",
-    Keybind = false,
-    Callback = function(v)
-        AutoCollectLilys = v
-        if v then
-            startCollecting()
-        else
-            stopCollecting()
-        end
-    end
-})

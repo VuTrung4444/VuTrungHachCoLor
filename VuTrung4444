@@ -1738,8 +1738,6 @@ local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
 local Player = game.Players.LocalPlayer
 
 local AutoCollectLilys = false
-local collectingThread = false
-local lastFailedFlower = nil -- Lưu trữ bông hoa nhặt lỗi gần nhất
 
 local function fireproximityprompt(ProximityPrompt, Amount, Skip)
     local HoldDuration = ProximityPrompt.HoldDuration
@@ -1770,14 +1768,14 @@ local function TweenToPosition(TargetPosition, Speed)
     return Tween, duration
 end
 
-local function getFlower()
+local function getFlower(excludeFlower)
     local chr = Player.Character
     local root = chr and chr:FindFirstChild("HumanoidRootPart")
     if not root then return nil end
 
     local dist, flower = math.huge, nil
     for _, v in next, flowers:GetChildren() do
-        if v:IsA('Model') and v ~= lastFailedFlower then -- Bỏ qua bông hoa lỗi
+        if v:IsA('Model') and v ~= excludeFlower then
             local mag = (root.Position - v.WorldPivot.Position).magnitude
             if mag < dist then
                 dist = mag
@@ -1802,6 +1800,8 @@ if Player.Character then
     CharacterAdded(Player.Character)
 end
 
+local collectingThread = false
+
 local function startCollecting()
     if collectingThread then
         warn("⚠️ Đang thu thập, không khởi động lại!")
@@ -1809,6 +1809,7 @@ local function startCollecting()
     end
 
     collectingThread = task.spawn(function()
+        local lastFailedFlower = nil
         while AutoCollectLilys do
             task.wait(0.5)
 
@@ -1817,11 +1818,12 @@ local function startCollecting()
                 repeat task.wait(1) until isCharacterValid()
             end
 
-            local flower = getFlower()
+            local flower = getFlower(lastFailedFlower)
 
             if not flower then
                 warn("⚠️ Không tìm thấy hoa, chờ thêm...")
                 task.wait(2)
+                lastFailedFlower = nil
                 continue
             end
 
@@ -1847,8 +1849,11 @@ local function startCollecting()
 
                 if not isCharacterValid() then
                     warn("⚠️ Nhân vật không hợp lệ sau khi di chuyển, bỏ qua hoa này!")
+                    lastFailedFlower = flower
                     continue
                 end
+
+                task.wait(0.75) -- Chờ 0.75 giây trước khi nhặt hoa
 
                 local collected = false
                 for _, v in next, flower:GetDescendants() do
@@ -1862,23 +1867,22 @@ local function startCollecting()
                 while tick() - waitTime < 8 do
                     task.wait(0.5)
                     if not flower.Parent then
-                        collected = true
+                        lastFailedFlower = nil
                         break
                     end
                 end
 
-                if not collected or flower.Parent then
-                    warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất! Đánh dấu hoa lỗi.")
+                if flower.Parent then
+                    warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất! Chuyển sang hoa khác")
                     lastFailedFlower = flower
-                else
-                    lastFailedFlower = nil
                 end
             else
                 warn("⚠️ WorldPivot của hoa không tồn tại!")
+                lastFailedFlower = flower
             end
         end
 
-        collectingThread = false -- Đặt lại khi dừng
+        collectingThread = false
         warn("🌸 Đã dừng thu thập hoa!")
     end)
 end
@@ -1900,3 +1904,4 @@ MiscSection:AddToggle({
         end
     end
 })
+

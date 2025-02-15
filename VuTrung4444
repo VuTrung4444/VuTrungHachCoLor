@@ -1768,14 +1768,16 @@ local function TweenToPosition(TargetPosition, Speed)
     return Tween, duration
 end
 
-local function getFlower(excludeFlower)
+local failedFlowers = {}
+
+local function getFlower()
     local chr = Player.Character
     local root = chr and chr:FindFirstChild("HumanoidRootPart")
     if not root then return nil end
 
     local dist, flower = math.huge, nil
     for _, v in next, flowers:GetChildren() do
-        if v:IsA('Model') and v ~= excludeFlower then
+        if v:IsA('Model') and not failedFlowers[v] then
             local mag = (root.Position - v.WorldPivot.Position).magnitude
             if mag < dist then
                 dist = mag
@@ -1786,22 +1788,6 @@ local function getFlower(excludeFlower)
     return flower
 end
 
-local function isCharacterValid()
-    local character = Player.Character
-    return character and character.Parent and character:FindFirstChild("HumanoidRootPart")
-end
-
-local function CharacterAdded(character)
-    character:WaitForChild("HumanoidRootPart")
-end
-
-Player.CharacterAdded:Connect(CharacterAdded)
-if Player.Character then
-    CharacterAdded(Player.Character)
-end
-
-local collectingThread = false
-
 local function startCollecting()
     if collectingThread then
         warn("⚠️ Đang thu thập, không khởi động lại!")
@@ -1809,7 +1795,6 @@ local function startCollecting()
     end
 
     collectingThread = task.spawn(function()
-        local lastFailedFlower = nil
         while AutoCollectLilys do
             task.wait(0.5)
 
@@ -1818,12 +1803,11 @@ local function startCollecting()
                 repeat task.wait(1) until isCharacterValid()
             end
 
-            local flower = getFlower(lastFailedFlower)
+            local flower = getFlower()
 
             if not flower then
                 warn("⚠️ Không tìm thấy hoa, chờ thêm...")
                 task.wait(2)
-                lastFailedFlower = nil
                 continue
             end
 
@@ -1849,7 +1833,7 @@ local function startCollecting()
 
                 if not isCharacterValid() then
                     warn("⚠️ Nhân vật không hợp lệ sau khi di chuyển, bỏ qua hoa này!")
-                    lastFailedFlower = flower
+                    failedFlowers[flower] = true
                     continue
                 end
 
@@ -1864,21 +1848,24 @@ local function startCollecting()
                 end
 
                 local waitTime = tick()
+                local flowerDisappeared = false
                 while tick() - waitTime < 8 do
                     task.wait(0.5)
                     if not flower.Parent then
-                        lastFailedFlower = nil
+                        flowerDisappeared = true
                         break
                     end
                 end
 
-                if flower.Parent then
+                if flowerDisappeared then
+                    warn("✔️ Hoa đã nhặt thành công!")
+                else
                     warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất! Chuyển sang hoa khác")
-                    lastFailedFlower = flower
+                    failedFlowers[flower] = true
                 end
             else
                 warn("⚠️ WorldPivot của hoa không tồn tại!")
-                lastFailedFlower = flower
+                failedFlowers[flower] = true
             end
         end
 

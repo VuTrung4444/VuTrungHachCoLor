@@ -1762,14 +1762,13 @@ end
 
 local function TweenToPosition(TargetPosition, Speed)
     local HRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-    if not HRP then return end
+    if not HRP then return nil, 0 end
 
     local distance = (HRP.Position - TargetPosition).magnitude
     local duration = distance / Speed
 
     local TweenInfoData = TweenInfo.new(duration, Enum.EasingStyle.Linear)
     local Tween = TweenService:Create(HRP, TweenInfoData, {CFrame = CFrame.new(TargetPosition)})
-    Tween:Play()
 
     return Tween, duration
 end
@@ -1786,6 +1785,7 @@ local function collectFlower(flower)
 end
 
 local CollectFlowersLoop = nil
+local CurrentTween = nil
 
 local function startCollectFlowersLoop()
     if CollectFlowersLoop then
@@ -1800,7 +1800,7 @@ local function startCollectFlowersLoop()
 
             local dist, flower = math.huge
             for i, v in next, flowers:GetChildren() do
-                if v:IsA('Model') then
+                if v:IsA('Model') and v:FindFirstChild("WorldPivot") then
                     local mag = (root.Position - v.WorldPivot.Position).magnitude
                     if mag < dist then
                         dist = mag
@@ -1812,26 +1812,61 @@ local function startCollectFlowersLoop()
         end
 
         while getgenv().AutoCollectLilys do
+            if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
+                task.wait(1)
+                continue
+            end
+
             local flower = getFlower()
 
-            if flower then
-                local tween, duration = TweenToPosition(flower.WorldPivot.Position, 250)
-                task.wait(duration + 0.5)
+            if flower and flower:FindFirstChild("WorldPivot") then
+                local targetPosition = flower.WorldPivot.Position
 
-                local success = collectFlower(flower)
+                local tween, duration = TweenToPosition(targetPosition, 250)
+                if tween then
+                    CurrentTween = tween
+                    tween:Play()
 
-                if not success then
-                    warn("⚠️ Không nhặt được hoa, bỏ qua...")
-                    task.wait(1)
-                else
-                    local startTime = tick()
-                    while tick() - startTime < 6 do
-                        task.wait(0.5)
-                        if not flower.Parent then break end
+                    local completed = false
+                    tween.Completed:Connect(function()
+                        completed = true
+                    end)
+
+                    local waitTime = 0
+                    while not completed and waitTime < duration do
+                        if not getgenv().AutoCollectLilys or not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
+                            tween:Cancel()
+                            break
+                        end
+
+                        if not flower.Parent then
+                            tween:Cancel()
+                            warn("⚠️ Hoa biến mất khi đang di chuyển!")
+                            break
+                        end
+
+                        task.wait(0.1)
+                        waitTime += 0.1
+                    end
+
+                    CurrentTween = nil
+
+                    if completed and flower.Parent then
+                        local success = collectFlower(flower)
+
+                        if success then
+                            local startTime = tick()
+                            while tick() - startTime < 6 do
+                                task.wait(0.5)
+                                if not flower.Parent then break end
+                            end
+                        else
+                            warn("⚠️ Không nhặt được hoa!")
+                        end
                     end
                 end
             else
-                warn("⚠️ Không tìm thấy hoa, đợi và thử lại")
+                warn("⚠️ Không tìm thấy hoa, thử lại sau...")
                 task.wait(3)
             end
         end
@@ -1848,6 +1883,10 @@ game:GetService("RunService").Heartbeat:Connect(function()
     if getgenv().AutoCollectLilys and not CollectFlowersLoop then
         startCollectFlowersLoop()
     elseif not getgenv().AutoCollectLilys and CollectFlowersLoop then
+        if CurrentTween then
+            CurrentTween:Cancel()
+            CurrentTween = nil
+        end
         task.cancel(CollectFlowersLoop)
         CollectFlowersLoop = nil
     end

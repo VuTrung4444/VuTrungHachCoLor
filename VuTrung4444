@@ -1770,7 +1770,6 @@ local function TweenToPosition(TargetPosition, Speed)
 end
 
 local function getFlower()
-local function getFlower()
     local chr = Player.Character
     local root = chr and chr:FindFirstChild("HumanoidRootPart")
     if not root then return nil end

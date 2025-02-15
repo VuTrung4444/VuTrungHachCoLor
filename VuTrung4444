@@ -1794,7 +1794,7 @@ end
 
 spawn(function()
     while task.wait(1) do
-        if getgenv().AutoCollectLilys then
+        if AutoCollectLilys then
             local attempts = 0
             while getgenv().AutoCollectLilys do
                 task.wait(0.5)

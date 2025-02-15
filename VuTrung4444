@@ -1874,7 +1874,7 @@ local function startCollecting()
 
                 local waitTime = tick()
                 while tick() - waitTime < 8 do
-                    task.wait(0.5)
+                    task.wait(0.25)
                     if not flower.Parent then
                         break
                     end

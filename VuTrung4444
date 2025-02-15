@@ -1787,6 +1787,21 @@ local function getFlower()
     end
     return flower
 end
+local function isCharacterValid()
+    local character = Player.Character
+    return character and character.Parent and character:FindFirstChild("HumanoidRootPart")
+end
+
+local function CharacterAdded(character)
+    character:WaitForChild("HumanoidRootPart")
+end
+
+Player.CharacterAdded:Connect(CharacterAdded)
+if Player.Character then
+    CharacterAdded(Player.Character)
+end
+
+local collectingThread = false
 
 local function startCollecting()
     if collectingThread then

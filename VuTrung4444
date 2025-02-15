@@ -1741,6 +1741,1749 @@ end)
 
 
 ---Nhặt Hoa---
+repeat task.wait() until game:IsLoaded()
+
+--// Variables \\--
+local plr = game:GetService("Players").LocalPlayer
+
+local function updateCharacterReferences(character)
+	local hrp = character:WaitForChild("HumanoidRootPart")
+		_G.Character = character
+		_G.HumanoidRootPart = hrp
+end
+	if plr.Character then
+		updateCharacterReferences(plr.Character)
+	end
+	plr.CharacterAdded:Connect(function(character)
+    updateCharacterReferences(character)
+end)
+
+local insert = table.insert 
+local character = plr.Character
+local PlrHumanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local plr = game.Players.LocalPlayer
+local Character = plr.Character or plr.CharacterAdded:Wait()	
+local Humanoid = Character and Character:WaitForChild("Humanoid")
+local WalkSpeed = 150
+local JumpPower = 150
+
+plr.CharacterAdded:Connect(function(Char)
+    Character = Char
+    Humanoid = Character:WaitForChild("Humanoid")
+
+    -- Cập nhật tốc độ và sức bật ngay khi nhân vật xuất hiện
+    if WalkSpeed then
+        Humanoid.WalkSpeed = WalkSpeed
+    end
+    if JumpPower then
+        Humanoid.JumpPower = JumpPower
+    end
+end)
+
+game:GetService("RunService").Stepped:Connect(function()
+    if Character and Humanoid then
+        -- Giữ tốc độ chạy cố định
+        if Humanoid.WalkSpeed ~= WalkSpeed then
+            Humanoid.WalkSpeed = WalkSpeed
+        end
+        
+        -- Giữ sức bật cố định
+        if Humanoid.JumpPower ~= JumpPower then
+            Humanoid.JumpPower = JumpPower
+        end
+    end
+end)
+
+plr.CharacterAdded:Connect(function(Char)
+    Character = Char
+    Humanoid = Character:WaitForChild("Humanoid")
+
+    -- Đặt lại tốc độ ngay lập tức
+    task.wait(0.1) -- Chờ game cập nhật xong
+    Humanoid.WalkSpeed = WalkSpeed
+    Humanoid.JumpPower = JumpPower
+end)
+
+local AtBoss = "false"
+local SkillCooldowns = {}
+local SelectedSkills = {"Z", "X", "C", "V"} -- Danh sách kỹ năng hợp lệ
+local skill = SelectedSkills[1] -- Lấy kỹ năng đầu tiên
+
+function GetCooldownTime(skill)
+    -- Giả lập dữ liệu hồi chiêu
+    local cooldowns = {Z = 5, X = 5, C = 5, V = 5, B = 5, N = 5}
+    return cooldowns[skill] or nil
+end
+
+
+local function UseSkill(skill)
+    if IsSkillReady(skill) then
+        VirtualInputManager:SendKeyEvent(true, skill, false, game)
+        SkillCooldowns[skill] = tick() -- Lưu thời gian sử dụng skill
+    end
+end
+
+
+local function IsSkillReady(skill)
+    local lastUsed = SkillCooldowns[skill] or 0
+    local cooldownTime = GetCooldownTime(skill) -- Hàm giả định lấy thời gian hồi chiêu của skill
+    return (tick() - lastUsed) >= cooldownTime
+end
+
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local AutoSkillEnabled = false -- Biến điều khiển Auto Skill
+local SkillStates = {
+    Z = false,
+    X = false,
+    C = false,
+    V = false,
+    B = false,
+    N = false
+}
+
+
+if not VirtualInputManager or not VirtualInputManager.SendKeyEvent then
+    error("❌ VirtualInputManager không hỗ trợ SendKeyEvent! Không thể tiếp tục.")
+end
+
+-- Hàm dùng kỹ năng
+local function UseSkill(skillKey)
+    local keycode = Enum.KeyCode[skillKey]
+    -- Nhấn phím
+    VirtualInputManager:SendKeyEvent(true, keycode, false, game)
+    task.wait(0.2) -- Chờ một chút
+    -- Nhả phím
+    VirtualInputManager:SendKeyEvent(false, keycode, false, game)
+end
+
+
+-- Hàm chạy Auto Skill
+local function AutoSkillLoop()
+    while AutoSkillEnabled do
+        if AtBoss then -- Chỉ dùng kỹ năng khi đã đến gần boss
+            local skillUsed = false
+
+            for _, skill in ipairs({"Z", "X", "C", "V", "B", "N"}) do
+                if AutoSkillEnabled and SkillStates[skill] then
+                    if IsSkillReady(skill) then 
+                        UseSkill(skill)
+                        skillUsed = true
+                    end
+                end
+            end
+            
+            if skillUsed then
+                task.wait(0.5)
+            else
+                task.wait(0.1) 
+            end
+        else
+            task.wait(0.1) -- Đợi tiếp nếu chưa tới boss
+        end
+    end
+end
+
+
+---Flower----
+local RunService = game:GetService("RunService");
+local Players = game:GetService("Players");
+local Player = Players.LocalPlayer;
+local chr = Player.Character
+local root = chr and chr:FindFirstChild("HumanoidRootPart")
+
+local AutoCollectLilys = false
+
+
+local TeleportSpeed = 250;
+local NextFrame = RunService.Heartbeat;
+
+
+local VirtualUser = game:GetService("VirtualUser")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local DrumRemote = Remotes:WaitForChild("war_Drums_remote")
+local Map = Workspace:WaitForChild("Map")
+
+
+
+
+local activeToggle = nil
+local toggles = {}
+
+--// Tween \\--
+local function GetDistance(Endpoint)
+    if typeof(Endpoint) == "Instance" then
+        Endpoint = Vector3.new(Endpoint.Position.X, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Y, Endpoint.Position.Z)
+    elseif typeof(Endpoint) == "CFrame" then
+        Endpoint = Vector3.new(Endpoint.Position.X, game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Y, Endpoint.Position.Z)
+    end
+    local Magnitude = (Endpoint - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+    return Magnitude
+end
+
+function Tween(Endpoint)
+  if typeof(Endpoint) == "Instance" then
+        Endpoint = Endpoint.CFrame
+    end
+    local TweenFunc = {}
+    local Distance = GetDistance(Endpoint)
+    local TweenInfo = TweenInfo.new(Distance / getgenv().tweenspeed, Enum.EasingStyle.Linear)
+
+    local targetCFrame = Endpoint
+
+    -- Giữ nguyên hướng nhìn khi ở chế độ "Above" hoặc "Below"
+    if FarmMethod == "Above" then
+        targetCFrame = CFrame.new(Endpoint.Position) * CFrame.Angles(math.rad(-90), 0, 0)
+    elseif FarmMethod == "Below" then
+        targetCFrame = CFrame.new(Endpoint.Position) * CFrame.Angles(math.rad(90), 0, 0)
+    end
+
+    local TweenObj = game:GetService("TweenService"):Create(
+        game.Players.LocalPlayer.Character.HumanoidRootPart, 
+        TweenInfo, 
+        { CFrame = targetCFrame }
+    )
+    TweenObj:Play()
+
+    function TweenFunc:Cancel()
+        TweenObj:Cancel()
+        return false
+    end
+
+    if Distance <= 100 then
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
+        TweenObj:Cancel()
+        return false
+    end
+
+    return TweenFunc
+end
+
+local function EnableAntiFall()
+    local plr = game.Players.LocalPlayer
+    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+
+    local humanoidRootPart = plr.Character.HumanoidRootPart
+    if not humanoidRootPart:FindFirstChild("BodyVelocity") then
+        local antifall = Instance.new("BodyVelocity")
+        antifall.Velocity = Vector3.new(0, 0, 0)
+        antifall.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        antifall.Name = "BodyVelocity"
+        antifall.Parent = humanoidRootPart
+    end
+end
+
+local function DisableAntiFall()
+    local plr = game.Players.LocalPlayer
+    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+
+    local humanoidRootPart = plr.Character.HumanoidRootPart
+    local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+    local antifall = humanoidRootPart:FindFirstChild("BodyVelocity")
+
+    -- Xóa lực AntiFall nếu tồn tại
+    if antifall then
+        antifall:Destroy()
+        task.wait(0.1) -- Chờ một chút để chắc chắn rằng BodyVelocity đã bị xóa
+    end
+
+    -- Đặt lại vận tốc để tránh bị giữ lại bởi lực cũ
+    humanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+    humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+    -- Đảm bảo nhân vật có thể di chuyển
+    if humanoid then
+        humanoid.PlatformStand = false  -- Ngăn trạng thái đứng yên cứng
+        humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)  -- Đưa nhân vật về trạng thái bình thường
+        task.wait(0.1)  -- Chờ một chút để trạng thái được cập nhật
+
+        -- Nhảy ngay lập tức để kiểm tra xem có bị khóa không
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end
+
+
+--// Get Closest \\---
+function IsEntitySelected(entity, selectedEntities)
+    for _, selectedEntity in ipairs(selectedEntities) do
+        if entity.Name == selectedEntity then
+            return true
+        end
+    end
+    return false
+end
+
+
+
+function getclosest(selectedEntities, parentFolder)
+    local closestEntity = nil
+    local closestDistance = math.huge
+
+    local entities = parentFolder:GetDescendants()
+
+    for i, entity in ipairs(entities) do
+        if entity:IsA("Model") and IsEntitySelected(entity, selectedEntities) then
+            local entityName = entity.Name
+            local humanoid = entity:FindFirstChild("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                local entityCFrame = entity:GetModelCFrame()
+                local distance = (entityCFrame.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestEntity = entity
+                end
+            end
+        end
+    end
+
+    return closestEntity
+end
+
+
+--// Tables \\--
+local AllowedBosses = {
+    "Snow Trainee",
+    "Sound Trainee",
+    "Akaze",
+    "Douma",
+    "Enme",
+    "Renpeke",
+    "Muichiro Tokito",
+    "Tengen",
+    "Rengoku",
+    "Inosuke",
+    "Swampy",
+    "Shiron",
+    "Zanegutsu Kuuchie",
+    "Sabito",
+    "Sanemi",
+    "Nezuko",
+    "Giyu",
+    "Slasher",
+    "Susamaru",
+    "Yahaba",
+	"Bandit Kaden",
+}
+
+local BossLocationsMap1 = {
+    { Name = "Shiron", Position = Vector3.new(3228.2385, 380, -3978.56933) },
+    { Name = "Giyu", Position = Vector3.new(3010.59, 316.95, -2924.11) },
+    { Name = "Nezuko", Position = Vector3.new(3556.5, 342.21, -4565.22) },
+    { Name = "Slasher", Position = Vector3.new(4365.71, 342.21, -4438.91) },
+    { Name = "Sanemi", Position = Vector3.new(1654, 348.46, -3737.69) },
+    { Name = "Yahaba", Position = Vector3.new(1409.45, 315.9, -4647.8) },
+    { Name = "Susamaru", Position = Vector3.new(1367.45, 315.9, -4553.09) },
+    { Name = "Bandit Kaden", Position = Vector3.new(-546.917, 304.467, -2860.067) },
+    { Name = "Zanegutsu Kuuchie", Position = Vector3.new(-351.28, 425.36, -2331.425) },
+    { Name = "Sabito", Position = Vector3.new(1237.92, 275.42, -2807.998) }
+}
+
+local BossLocationsMap2 = {
+    { Name = "Akeza", Position = Vector3.new(2006.46, 556, -130.2) },
+    { Name = "Inosuke", Position = Vector3.new(1592.34, 299.98, -388.1) },
+    { Name = "Enme", Position = Vector3.new(1591.18, 483.61, -685.5775) },
+    { Name = "Renpeke", Position = Vector3.new(-1265, 600.57, -659.554) },
+    { Name = "Swampy", Position = Vector3.new(-1364.28, 600.96875, -223.2) },
+    { Name = "Sound Trainee", Position = Vector3.new(1881.34, 662.42, -2800.46) },
+    { Name = "Tengen", Position = Vector3.new(1460.45, 486.122, -3137.05) },
+    { Name = "Snow Trainee", Position = Vector3.new(255.18, 530.94, -2989.45) },
+    { Name = "Douma", Position = Vector3.new(-0.146, 512.331, -1674.79) },
+    { Name = "Muichiro Tokito", Position = Vector3.new(4513.83, 672.41, -559.748) },
+    { Name = "Rengoku", Position = Vector3.new(3654.3999, 672.91, -348.877) },
+    { Name = "Slasher", Position = Vector3.new(908.402, 487.295, -1351.5653) }
+}
+
+local Map1 = {
+    ["Kiribating Village"] = CFrame.new(120, 282, -1743),
+    ["Zapiwara Cave"] = CFrame.new(-38, 275, -2403),
+    ["Ushumaro Village"] = CFrame.new(-90, 354, -3170),
+    ["Butterfly Mansion"] = CFrame.new(3001, 316, -3806),
+    ["Final Selection"] = CFrame.new(5258, 365, -2422),
+    ["Zapiwara Mountain"] = CFrame.new(-366, 425, -2371),
+    ["Wind Trainer"] = CFrame.new(1797, 334, -3466),
+    ["Kabiwaru Village"] = CFrame.new(2015, 315, -3051),
+    ["Waroru Cave"] = CFrame.new(689, 261, -2469),
+    ["Ouwbayashi Home"] = CFrame.new(1241, 320, -4568),
+    ["Dangerous Woods"] = CFrame.new(3839, 342, -4177)
+}
+
+local Map2 = {
+    ["Nomay Village"] = CFrame.new(3562, 673, -2109),
+    ["Mugen Train Station"] = CFrame.new(783, 495, 900),
+    ["Wop City"] = CFrame.new(-31, 599, -431),
+    ["Village 2"] = CFrame.new(1215, 567, 95),
+    ["Cave 1"] = CFrame.new(4252, 671, 581),
+    ["Cave 2"] = CFrame.new(1182, 485, -1192),
+    ["Mist trainer location"] = CFrame.new(4324, 671, -569),
+    ["Akeza Cave"] = CFrame.new(1902, 554, -150),
+    ["Frozen Lake"] = CFrame.new(2049, 481, -769),
+    ["Beast Cave"] = CFrame.new(1840, 481, 37),
+    ["Wop's training grounds"] = CFrame.new(223, 595, 483),
+    ["Snowy Place"] = CFrame.new(379, 531, -2865),
+    ["Devourers Jaw"] = CFrame.new(480, 507, -1864),
+    ["Sound Cave"] = CFrame.new(1828, 487, -2770)
+}
+
+
+local SelectedMap = nil -- Mặc định không có Map nào được chọn
+local LocationsDropdown, BossesDropdown -- Lưu Dropdown để cập nhật danh sách
+local Map1List, Map2List, BossesMap1List, BossesMap2List = {}, {}, {}, {}
+local LocationsToUse, BossesToUse = {}, {}
+local ActiveBossLocations = {}
+
+-- Điền danh sách địa điểm & Boss CHỈ MỘT LẦN
+for name, _ in pairs(Map1) do
+    table.insert(Map1List, name)
+end
+for name, _ in pairs(Map2) do
+    table.insert(Map2List, name)
+end
+for name, _ in pairs(BossLocationsMap1) do
+    table.insert(BossesMap1List, name)
+end
+for name, _ in pairs(BossLocationsMap2) do
+    table.insert(BossesMap2List, name)
+end
+
+
+
+local AllowedMobs = {
+    "Civilian",
+    "Heikin Demon",
+    "Slasher",
+    "Nomay Bandit",
+    "Nomay Bandit Boss",
+    "Yowai Demon",
+    "Thief",
+    "Mizunoto Demon Slayer",
+}
+
+local raceTable = {
+    [1] = "Human",
+    [2] = "Slayer",
+    [3] = "Demon",
+    [4] = "Hybrid"
+}
+
+local SelectedBosses = {}
+local Bosses = {}
+local mobs = {}
+
+local GodModes = {
+	"scythe_asteroid_reap",
+    "Water_Surface_Slash",
+    "insect_breathing_dance_of_the_centipede",
+    "blood_burst_explosive_choke_slam",
+    "explosive_demon_art_blood_burst",
+    "Wind_breathing_black_wind_mountain_mist",
+    "flame_breathing_flaming_eruption",
+    "Beast_breathing_devouring_slash",
+    "akaza_bda_compass_needle",
+    "dream_bda_flesh_monster",
+    "swamp_bda_swamp_domain",
+    "snow_breathing_illusory_Storm",
+    "sound_breathing_smoke_screen",
+    "ice_demon_art_bodhisatva",
+}
+
+--// Kill Aura \\--
+local function attack(method)
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, 919, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, math.huge, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, 919, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, math.huge, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, 919, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, math.huge, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, 919, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, math.huge, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, 919, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, math.huge, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, 919, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, math.huge, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, 919, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, math.huge, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, 919, "ground_slash")
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:InvokeServer(method, plr, plr.Character, plr.Character.HumanoidRootPart, plr.Character.Humanoid, math.huge, "ground_slash")
+end
+
+local attackMethods = {
+    ["Combat"] = 'fist_combat',
+    ["Sword"] = 'Sword_Combat_Slash',
+    ["Scythe"] = 'Scythe_Combat_Slash',
+    ["Claw"] = 'claw_Combat_Slash',
+    ["Fans"] = 'fans_combat_slash',
+}
+
+local godModeState = false
+local godModeToggle = {}-- Khai báo trước nhưng chưa gán
+
+--// Main Script \\--
+local library = loadstring(game:GetObjects("rbxassetid://7657867786")[1].Source)()
+local Subs = library.subs
+local IsOpen = Subs.Wait
+
+local Window = library:CreateWindow({
+    Name = "HackerLor | DMM DianaVsRice",
+    Themeable = {
+        Info = "VTrungHackerLor",
+        Credit = false,
+        Background = "",
+        Visible = true
+    }
+})
+
+--// Main Tab \\--
+local MainTab = Window:CreateTab({Name = "Main"})
+local MainSection = MainTab:CreateSection({Name = "Farming"})
+local Settings = MainTab:CreateSection({Name = "Settings"})
+local KillAura = MainTab:CreateSection({Name = "Kill Aura", Side = "Right"})
+local Teleports = MainTab:CreateSection({Name = "Teleports", Side = "Right"})
+local Info = MainTab:CreateSection({Name = "Info", Side = "Right"})
+local BossesTab = MainTab:CreateSection({Name = "", Side = "Left"})
+
+
+--// Misc Tab \\--
+local MiscTab = Window:CreateTab({Name = "Misc"})
+local MiscSection = MiscTab:CreateSection({Name = "Misc"})
+local GodModeQuick = MiscTab:CreateSection({Name = "GMQ", Side = "Left"})
+local AutoSkills = MiscTab:CreateSection({Name = "AutoSkills", Side = "Right"})
+local SpeedAndJump = MiscTab:CreateSection({Name = "Speed&Jump", Side = "Right"})
+local Ect = MiscTab:CreateSection({Name = "Ect", Side = "Right"})
+
+local Debree = Workspace:WaitForChild("Debree")
+local EctFolder = ReplicatedStorage:WaitForChild("Misc")
+local Clashing = EctFolder:WaitForChild("Clashing")
+
+MainSection:AddToggle({
+    Name = "Farm",
+    Flag = "FarmSelectedBosses",
+    Callback = function (v)
+        getgenv().Farm = v
+            if antifallActive ~= nil and antifallActive then
+                antifallActive = false
+                DisableAntiFall() -- Gọi hàm sửa lỗi để tắt AntiFall
+
+                local plr = game.Players.LocalPlayer
+                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local humanoidRootPart = plr.Character.HumanoidRootPart
+                    local humanoid = plr.Character:FindFirstChildOfClass("Humanoid") 
+                        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            	end
+           end
+    end
+})
+
+
+MainSection:AddToggle({
+    Name = "Arrow Aura [Near Mobs]",
+    Flag = "Arrow",
+    Callback = function (v)
+        getgenv().Arrow = v
+    end
+})
+
+MainSection:AddToggle({
+    Name = "Arrow Aura [Fast]",
+    Flag = "ArrowAll",
+    Callback = function (v)
+        getgenv().AllArrow = v
+    end
+})
+
+MainSection:AddToggle({
+    Name = "Snow Aura [Near Mobs]",
+    Flag = "Snow",
+    Callback = function (v)
+        getgenv().Snow = v
+    end
+})
+
+MainSection:AddTextbox({
+    Name = 'Player Target',
+    Placeholder = '...',
+    Flag = 'Player Name',
+    Callback = function(v)
+        getgenv().selectedPlayerName = v
+    end
+})
+
+MainSection:AddToggle({
+    Name = "Arrow Aura [Target Player]",
+    Flag = "ArrowTargeted",
+    Callback = function (v)
+        getgenv().TargetPlayersArrow = v
+    end
+})
+
+
+--// Settings \\--
+Settings:AddDropdown({
+    Name = "Farm Method",
+    List = {"Above","Behind","Below"},
+    Flag = "FarmMethodSelection",
+    Nothing = "Select Method...",
+	Value = "Above",
+    Callback = function(Chosen)
+        FarmMethod = Chosen 
+    end
+})
+
+Settings:AddSlider({
+    Name = "Distance",
+    Flag = "DistanceSlider",
+    Value = 8,
+    Min = 1,
+    Max = 200,
+    Textbox = true,
+    Callback = function(Value)
+        getgenv().Distance = Value
+    end
+})
+
+Settings:AddSlider({
+    Name = "Tween Speed",
+    Flag = "TweenSlider",
+    Value = 300,
+    Min = 150,
+    Max = 500,
+    Textbox = true,
+    Callback = function(Value)
+        getgenv().tweenspeed = Value
+    end
+})
+
+--// Kill Aura \\--
+KillAura:AddToggle({
+    Name = "Kill Aura",
+    Flag = "KillAuraToggle",
+    Callback = function (v)
+        getgenv().KillAura = v
+    end
+})
+
+
+local weapons = {"Sword", "Combat", "Scythe", "Fans", "Claw"}
+local toggles = {}
+local activeToggle = nil
+
+for _, weapon in ipairs(weapons) do
+    local toggle = KillAura:AddToggle({
+        Name = weapon,
+        Flag = "KillAuraWeapon_" .. weapon,
+        Callback = function(state)
+            if state then
+                -- Tắt toggle trước đó nếu có và khác với toggle hiện tại
+                if activeToggle and activeToggle ~= toggle then
+                    activeToggle:SetState(false)
+                end
+                -- Cập nhật toggle hiện tại và thiết lập Method
+                activeToggle = toggle
+                Method = weapon
+                print("Weapon Selected: " .. weapon)
+            else
+                -- Chỉ clear nếu chính toggle hiện tại bị tắt
+                if activeToggle == toggle then
+                    activeToggle = nil
+                    Method = nil
+                    print("Weapon Deselected")
+                end
+            end
+        end
+    })
+
+    toggles[weapon] = toggle
+end
+
+
+-- Toggle chọn Map 1
+Teleports:AddToggle({
+    Name = "Map 1",
+    Flag = "Map1Toggle",
+    Default = false,
+    Callback = function(State)
+        if State then
+            SelectedMap = "Map1"
+            Teleports.Flags["Map2Toggle"] = false -- Tắt Toggle Map 2 nếu Map 1 được chọn
+        else
+            if not Teleports.Flags["Map2Toggle"] then
+                SelectedMap = nil -- Nếu cả hai đều tắt, không chọn Map nào
+            end
+        end
+        UpdateLists()
+    end
+})
+
+-- Toggle chọn Map 2
+Teleports:AddToggle({
+    Name = "Map 2",
+    Flag = "Map2Toggle",
+    Default = false,
+    Callback = function(State)
+        if State then
+            SelectedMap = "Map2"
+            Teleports.Flags["Map1Toggle"] = false -- Tắt Toggle Map 1 nếu Map 2 được chọn
+        else
+            if not Teleports.Flags["Map1Toggle"] then
+                SelectedMap = nil -- Nếu cả hai đều tắt, không chọn Map nào
+            end
+        end
+        UpdateLists()
+    end
+})
+
+
+Teleports:AddButton({
+    Name = "Skibidi To",
+    Callback = function()
+        local Player = game.Players.LocalPlayer
+        local Character = Player.Character or Player.CharacterAdded:Wait()
+        local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+
+        if not HumanoidRootPart then
+            warn("⚠️ Lỗi: Không tìm thấy HumanoidRootPart!")
+            return
+        end
+
+        -- Kiểm tra SelectedArea hợp lệ
+        if not SelectedArea or SelectedArea == "" then
+            warn("⚠️ Lỗi: Chưa chọn khu vực để dịch chuyển!")
+            return
+        end
+
+        -- Xác định MapToUse dựa trên Map đã chọn
+        local MapToUse = {}
+        if SelectedMap == "Map1" then
+            MapToUse = Map1
+        elseif SelectedMap == "Map2" then
+            MapToUse = Map2
+        else
+            warn("⚠️ Lỗi: Chưa chọn Map hợp lệ!")
+            return
+        end
+
+        -- Kiểm tra Place hợp lệ
+        local Place = MapToUse[SelectedArea]
+        if not Place then
+            warn("⚠️ Lỗi: Không tìm thấy tọa độ của khu vực [" .. SelectedArea .. "] trong Map [" .. SelectedMap .. "]!")
+            return
+        end
+
+        -- Dịch chuyển tức thời
+        HumanoidRootPart.CFrame = Place * CFrame.new(0, 5, 0)
+        print("✅ Dịch chuyển thành công!")
+    end
+})
+
+-- Dropdown danh sách địa điểm (ban đầu trống)
+LocationsDropdown = Teleports:AddDropdown({
+    Name = "Locations",
+    Nothing = "Select Location...",
+    Flag = "LocationSelect",
+    List = LocationsToUse, -- Cập nhật danh sách mới
+    Callback = function(State)
+        SelectedArea = State
+    end
+})
+
+-- Dropdown danh sách Boss (ban đầu trống)
+BossesDropdown = Teleports:AddDropdown({
+    Name = "Farm Bosses",
+    Nothing = "Select Boss...",
+    Flag = "BossSelect",
+    List = {}, -- Ban đầu danh sách rỗng
+    Callback = function(State)
+        SelectedBoss = State
+    end
+})
+
+
+--// Info \\--
+Info:AddLabel("")
+Info:AddLabel("")
+local infoLabel = Info:AddLabel("")
+Info:AddLabel("")
+Info:AddLabel("")
+
+--// Living Bosses \\--
+
+BossesTab:AddLabel("")
+BossesTab:AddLabel("")
+BossesTab:AddLabel("")
+BossLabel = BossesTab:AddLabel("")
+BossesTab:AddLabel("")
+BossesTab:AddLabel("")
+BossesTab:AddLabel("")
+
+--// Misc Section \\--
+MiscSection:AddToggle({
+    Name = "Auto Collect Chest",
+    Flag = "CollectAllChest",
+    Keybind = false,
+    Callback = function (v)
+        AutoCollectChest = v
+    end
+})
+
+
+SpeedAndJump:AddSlider({
+    Name = "WalkSpeed",
+    Value = 280,
+    Min = 16,
+    Max = 300,
+    Flag = "WalkSpeed",
+    Callback = function(State)
+        WalkSpeed = State
+        if game.Players.LocalPlayer.Character then
+            local humanoid = game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = WalkSpeed
+            end
+        end
+    end
+})
+
+SpeedAndJump:AddSlider({
+    Name = "JumpPower",
+    Value = 150,
+    Min = 50,
+    Max = 1000,
+    Flag = "JumpPower",
+    Callback = function(State)
+        JumpPower = State
+        if game.Players.LocalPlayer.Character then
+            local humanoid = game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.JumpPower = JumpPower
+            end
+        end
+    end
+})
+
+--GodModeState--
+local godModeToggle = GodModeQuick:AddToggle({
+    Name = "Enable God Mode",
+    Flag = "ENG_Toggle",
+    Callback = function(v)
+        godModeState = v
+        ENG = v
+    end
+})
+
+local function toggleGodMode(state)
+    godModeState = state
+    ENG = state
+
+    -- Cập nhật giao diện của toggle
+    if godModeToggle.Callback then
+        task.spawn(function()
+            godModeToggle.Callback(state)
+			print("test")
+        end)
+    end
+end
+
+GodModeQuick:AddButton({
+    Name = "Enable God Mode",
+    Callback = function()
+        toggleGodMode(not godModeState) -- Đảo trạng thái bật/tắt
+    end
+})
+
+for _, godMode in ipairs(GodModes) do
+    local toggle = GodModeQuick:AddToggle({
+        Name = godMode,
+        Flag = "Gm_" .. godMode, -- Thêm Flag để quản lý dễ dàng hơn nếu cần
+        Callback = function(state)
+            if state then
+                -- Tắt toggle trước đó nếu có và khác với toggle hiện tại
+                if activeToggle and activeToggle ~= toggle then
+                    activeToggle:SetState(false)
+                end
+                -- Cập nhật toggle hiện tại và thiết lập GodSelected
+                activeToggle = toggle
+                getgenv().GodSelected = godMode
+                print("God Mode Selected: " .. godMode)
+            else
+                -- Chỉ clear nếu chính toggle hiện tại bị tắt
+                if activeToggle == toggle then
+                    activeToggle = nil
+                    getgenv().GodSelected = nil
+                    print("God Mode Deselected")
+                end
+            end
+        end
+    })
+
+    -- Lưu trữ toggle để có thể kiểm soát sau này nếu cần
+    toggles[godMode] = toggle
+end
+
+
+MiscSection:AddToggle({
+    Name = "War Drums",
+    Value = false, 
+    Flag = "WarDrums",
+    Callback = function(State)
+        TLROAPSMG = State 
+        while TLROAPSMG and IsOpen() do 
+            DrumRemote:FireServer(true)
+            task.wait(7.5)
+        end     
+    end 
+})
+
+MiscSection:AddToggle({
+    Name = "Kamado God Mode [Kamado]",
+    Flag = "KamadoGod",
+    Keybind = false,
+    Callback = function (v)
+        if v then
+            game:GetService("ReplicatedStorage").Remotes.heal_tang123asd:FireServer(true)
+        else
+            game:GetService("ReplicatedStorage").Remotes.heal_tang123asd:FireServer(false)
+        end
+    end
+})
+
+MiscSection:AddToggle({
+    Name = "Heart Ablaze [Human]",
+    Flag = "HeartAblaze",
+    Keybind = false,
+    Callback = function (v)
+        if v then
+            game:GetService("ReplicatedStorage").Remotes.heart_ablaze_mode_remote:FireServer(true)
+        else
+            game:GetService("ReplicatedStorage").Remotes.heart_ablaze_mode_remote:FireServer(false)
+        end
+    end
+})
+
+
+MiscSection:AddToggle({
+    Name = "Thunder Mode [Human]",
+    Flag = "Thunder",
+    Keybind = false,
+    Callback = function (v)
+        if v then
+            game:GetService("ReplicatedStorage").Remotes.thundertang123:FireServer(true)
+        else
+            game:GetService("ReplicatedStorage").Remotes.thundertang123:FireServer(false)
+        end
+    end
+})
+
+
+MiscSection:AddToggle({
+    Name = "No Sun Dmg",
+    Flag = "NS",
+    Keybind = false,
+    Callback = function (v)
+        if game:GetService("Players").LocalPlayer.PlayerScripts.Small_Scripts.Gameplay:FindFirstChild("Sun_Damage") then
+            if v == true then
+                    game:GetService("Players").LocalPlayer.PlayerScripts.Small_Scripts.Gameplay.Sun_Damage.Disabled = true
+                else
+                    game:GetService("Players").LocalPlayer.PlayerScripts.Small_Scripts.Gameplay.Sun_Damage.Disabled = false
+                end
+            end
+    end
+})
+
+
+MiscSection:AddToggle({
+    Name = "Boss Damage Log Spoof",
+    Flag = "BDLS",
+    Keybind = false,
+    Callback = function (v)
+        getgenv().hide_userdmg = v
+    end
+})
+
+
+MiscSection:AddToggle({
+	Name = "Auto Collect Lilys",
+	Flag = "CollectAllLilys",
+	Keybind = false,
+	Callback = function (v)
+		AutoCollectLilys = v
+	end
+})
+
+AutoSkills:AddToggle({
+    Name = "Auto Skill",
+    Flag = "AutoSkillEnabled",
+    Callback = function(state)
+        AutoSkillEnabled = state
+        local skill = SelectedSkill or "Z"
+
+        if state then
+            task.spawn(AutoSkillLoop)
+        end
+    end
+})
+
+for _, skill in ipairs({"Z", "X", "C", "V", "B", "N"}) do
+    AutoSkills:AddToggle({
+        Name = "Use Skill " .. skill,
+        Flag = "UseSkill" .. skill,
+        Callback = function(state)
+            SkillStates[skill] = state
+        end
+    })
+end
+
+local AutoEatSouls = false
+
+Ect:AddToggle({
+    Name = "Auto Eat Souls",
+    Value = false,
+    Flag = "Souls",
+    Callback = function(State)
+        AutoEatSouls = State
+    end
+})
+
+Ect:AddToggle({
+    Name = "Auto Collect Orbs",
+    Value = false,
+    Flag = "AutoOrb",
+    Callback = function(State)
+        LIPJRMAL = State
+
+        task.spawn(function()
+            while LIPJRMAL and IsOpen() do
+                if not HumanoidRootPart or not HumanoidRootPart.Parent then
+                    HumanoidRootPart = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                end
+
+                for _, v in ipairs(Map:GetChildren()) do
+                    if v:IsA("Model") and v:FindFirstChild("Sound") then
+                        for _, v1 in ipairs(v:GetChildren()) do
+                            if v1:FindFirstChild("TouchInterest") then
+                                v:PivotTo(HumanoidRootPart.CFrame)
+                            end
+                        end
+                    end
+                end
+
+                task.wait(0.5)
+            end
+        end)
+    end
+})
+
+local Formatted = ("%svs"):format(Player.Name)
+Ect:AddToggle({
+    Name = "Auto Clash",
+    Value = false, 
+    Flag = "AutoClash",
+    Callback = function(State)
+        LRIEPMFLA = State 
+        while LRIEPMFLA and IsOpen() do -- what the fuck is this
+            local ClashFolder = Debree:FindFirstChild("clash_folder") 
+            if ClashFolder then 
+                for i,v in next, ClashFolder:GetChildren() do 
+                    if v.Name:find(Formatted) then 
+                        local Points = v:FindFirstChild(Player.Name) 
+                        if not Points then continue end 
+                        spawn(function()
+                            task.wait(7.5) 
+                            game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("Change_Value", Points, 99999999999)
+                        end)
+                    else 
+                        for i1,Points in next, v:GetChildren() do 
+                            if Players:FindFirstChild(Points.Name) then 
+                                spawn(function()
+                                    task.wait(7.5) 
+                                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("Change_Value", Points, 99999999999)
+                                end)
+                            end 
+                        end 
+                    end 
+                end 
+            end 
+            local Found = Clashing:FindFirstChild(Player.Name)
+            local Points = Found and Found:FindFirstChild("Points") 
+            if Points then
+                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("Change_Value", Points, 99999999999)  
+            end 
+        end 
+    end 
+})
+
+Ect:AddButton({
+    Name = "Reset",
+    Callback = function()
+        Humanoid.Health = 0 
+        task.wait(0.5)
+        Humanoid.Health = 0
+    end 
+})
+
+--// Actual Code \\--
+
+-- Hàm cập nhật danh sách địa điểm & Bosses
+function UpdateLists()
+    local LocationsToUse, BossesToUse = {}, {}
+
+    if SelectedMap == "Map1" then
+        LocationsToUse = Map1List
+        BossesToUse = BossesMap1List
+    elseif SelectedMap == "Map2" then
+        LocationsToUse = Map2List
+        BossesToUse = BossesMap2List
+    end
+
+    -- Xóa Dropdown cũ nếu tồn tại
+    if LocationsDropdown then
+        LocationsDropdown:Remove()
+    end
+    if BossesDropdown then
+        BossesDropdown:Remove()
+    end
+
+    -- Tạo Dropdown mới với danh sách cập nhật
+    LocationsDropdown = Teleports:AddDropdown({
+        Name = "Locations",
+        Nothing = "Select Location...",
+        Flag = "LocationSelect",
+        List = LocationsToUse,
+        Callback = function(State)
+            SelectedArea = State
+        end
+    })
+
+    BossesDropdown = Teleports:AddDropdown({
+    Name = "Farm Bosses",
+    Nothing = "ForCheckOnly",
+    Flag = "BossSelect",
+    List = (function()
+        if not BossesToUse or type(BossesToUse) ~= "table" then
+
+            return {}
+        end
+
+        local names = {}
+        for index, boss in ipairs(BossesToUse) do
+            if boss and type(boss) == "table" and boss.Name then
+                table.insert(names, boss.Name)
+            end
+        end
+        return names
+    end)(),
+    Callback = function(State)
+        SelectedBoss = State
+    end
+})
+
+
+    -- Gọi UpdateActiveBossLocations để cập nhật danh sách boss hiện tại
+    UpdateActiveBossLocations()
+end
+
+function UpdateActiveBossLocations()
+    ActiveBossLocations = {}
+
+    -- Kiểm tra map hiện tại và cập nhật danh sách boss
+    if SelectedMap == "Map1" then
+        ActiveBossLocations = BossLocationsMap1
+    elseif SelectedMap == "Map2" then
+        ActiveBossLocations = BossLocationsMap2
+    else
+        return
+    end
+
+end
+
+
+--// Auto Collect Chest \\--
+spawn(function()
+    while task.wait() do
+        if AutoCollectChest then
+            for _, v in pairs(game:GetService("Workspace").Debree:GetChildren()) do
+                if v.Name == "Loot_Chest" then
+                    for i,c in pairs(v:FindFirstChild("Drops"):GetChildren()) do
+                            v["Add_To_Inventory"]:InvokeServer(c.Name)
+                            delay(0.5, function()
+                            c:Destroy()
+                        end)
+                    end
+                end
+            end
+		end 
+		
+    end
+end)
+
+--Eat souls--
+task.spawn(function()
+    while task.wait(0.5) do
+        if AutoEatSouls then
+            for _, v in pairs(workspace.Debree:GetChildren()) do
+                if v.Name == "Soul" then
+                    local Handle = v:FindFirstChild("Handle")
+                    local Eat = Handle and Handle:FindFirstChild("Eatthedamnsoul")
+                    if Eat then
+                        Eat:FireServer()
+                    end
+                end
+            end
+        end
+    end
+end)
+
+
+--No Fog--
+MiscSection:AddToggle({
+    Name = "No Fog",
+    Flag = "NF",
+    Keybind = false,
+    Callback = function (v)
+        if v == true then
+            for index, light in pairs(game:GetService("Lighting"):GetChildren()) do
+                if light.Name == "Atmosphere" or string.find(light.Name, "Blur") or string.find(light.Name, "Bloom") then
+                    light:Destroy()
+                end
+            end
+            game:GetService("Lighting").FogEnd = 1000000
+            elseif v == false then
+            print("1")
+        end
+    end
+})
+
+--// Inf iFrames \\--
+spawn(function()
+    while task.wait() do
+        if ENG then
+            local args = {
+                [1] = "skil_ting_asd",
+                [2] = game:GetService("Players").LocalPlayer,
+                [3] = getgenv().GodSelected,
+                [4] = 1
+            }
+            
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("To_Server"):WaitForChild("Handle_Initiate_S"):FireServer(unpack(args))
+            task.wait(0.55)
+        end
+    end
+end)
+
+--// Damage Log Spoofer \\--
+spawn(function()
+    while task.wait() do
+        if getgenv().hide_userdmg == true then
+            local user = game:GetService("Players").LocalPlayer.Name
+            if game:GetService("Players")[tostring(user)].PlayerGui["Pop_Ups"].Bosshp["Damage_Log"]:FindFirstChild(tostring(user)) then
+            game:GetService("Players")[tostring(user)].PlayerGui["Pop_Ups"].Bosshp["Damage_Log"][tostring(user)].txt.Text = "Blackout Blackout Blackout"
+            end
+        end
+    end
+end)
+
+--// Auto Med and Auto Split \\--
+spawn(function()
+    while task.wait() do
+        if getgenv().AutoMed then
+            pcall(function()
+                game:GetService("Players").LocalPlayer.PlayerGui.ExcessGuis["Meditate_gui"].Holder.LocalScript.Value.Value = 100
+            end)
+        end
+    end
+end)
+
+spawn(function()
+    while task.wait() do
+        if getgenv().AutoSplit then
+            pcall(function()
+                game:GetService("Players").LocalPlayer.PlayerGui.ExcessGuis["boulder_split_ui"].Holder.LocalScript.Value.Value = 10000
+            end)
+        end
+    end
+end)
+
+--// Kill Aura \\-- 
+task.spawn(function()
+    while task.wait() do
+        if getgenv().KillAura then
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    if (not debounce) and ((not game.Players.LocalPlayer:FindFirstChild("combotangasd123")) or game.Players.LocalPlayer:FindFirstChild("combotangasd123") and game.Players.LocalPlayer:FindFirstChild("combotangasd123").Value < 1) then 
+                    debounce = true 
+                    attack(attackMethods[Method])
+                    task.wait(1.25)
+                    debounce = false
+                end
+            end
+        end
+    end
+end)
+
+
+
+getgenv().Distance = 8
+getgenv().tweenspeed = 300
+SelectedBosses = selectedBosses
+
+
+--// Farm \\--
+
+function getclosestSkills(parentFolder)
+    local closestEntity = nil
+    local closestDistance = math.huge
+    local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+    local entities = parentFolder:GetDescendants()
+
+    for _, entity in ipairs(entities) do
+        if entity:IsA("Model") then
+            local humanoid = entity:FindFirstChild("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+				local modelCFrame = nil
+				if entity.GetModelCFrame and type(entity.GetModelCFrame) == "function" then
+					modelCFrame = entity:GetModelCFrame()
+				end
+				if modelCFrame then
+					local distance = (entity:GetModelCFrame().Position - playerPosition).Magnitude
+                	if distance < closestDistance then
+                   		closestDistance = distance
+                  		closestEntity = entity
+					end
+				end	
+
+            end
+        end
+    end
+    return closestEntity
+end
+
+
+function getClosestPlayer(selectedPlayerName)
+    local closestPlayer = nil
+    local closestDistance = math.huge
+
+    local players = game:GetService("Players"):GetPlayers()
+    local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+
+    for _, player in ipairs(players) do
+        if player ~= game.Players.LocalPlayer and (not selectedPlayerName or player.Name == selectedPlayerName) then
+            local character = player.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local distance = (character.HumanoidRootPart.Position - playerPosition).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestPlayer = player
+                end
+            end
+        end
+    end
+
+    if closestPlayer then
+        print("Closest Player:", closestPlayer.Name)
+    else
+        print("No Closest Player Found")
+    end
+
+    return closestPlayer
+end
+
+
+function getClosestPlayer1()
+    local closestPlayer = nil
+    local closestDistance = math.huge
+
+    local players = game:GetService("Players"):GetPlayers()
+    local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+
+    for _, player in ipairs(players) do
+        if player ~= game.Players.LocalPlayer then
+            local character = player.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local distance = (character.HumanoidRootPart.Position - playerPosition).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestPlayer = player
+                end
+            end
+        end
+    end
+
+    if closestPlayer then
+        print("Closest Player:", closestPlayer.Name)
+    else
+        print("No Closest Player Found")
+    end
+
+    return closestPlayer
+end
+
+
+
+--// Arrow Kill Aura \\--
+
+spawn(function()
+    while task.wait() do
+        if getgenv().Arrow then
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local parentFolder = game:GetService("Workspace").Mobs
+                local v = getclosestSkills(parentFolder)
+
+				while not v do
+					task.wait(0.5)
+					v = getclosestSkills(parentFolder)
+				end
+				
+				local modelCFrame = nil
+				if v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+					modelCFrame = v:GetModelCFrame()
+				end
+
+				while not modelCFrame do
+					task.wait(0.01)
+					if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+						modelCFrame = v:GetModelCFrame()
+					end
+					if not v then
+						break
+					end
+				end
+
+				if modelCFrame then
+                	game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("arrow_knock_back_damage",game.Players.LocalPlayer.Character,modelCFrame,v,200,200)
+                	task.wait(0.275)
+				end
+
+            end
+        end
+    end
+end)
+
+
+
+spawn(function()
+    while task.wait() do
+        if getgenv().Arrow or getgenv().TargetPlayersArrow or getgenv().AllArrow then
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:InvokeServer("skil_ting_asd",game:GetService("Players").LocalPlayer,"arrow_knock_back",5)
+				task.wait(10)
+            end
+        end
+    end
+end)
+
+spawn(function()
+    while task.wait() do
+        if getgenv().Snow then
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local parentFolder = game:GetService("Workspace").Mobs
+                local v = getclosestSkills(parentFolder)
+                if v and table.find(AllowedBosses, v.Name) then
+                    local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+                    local distance = (v:GetModelCFrame().Position - playerPosition).Magnitude
+                    if distance <= 50 then
+                        for i=1,5 do
+                        print("Tried To Kill "..v.Name)
+                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("snow_breatihng_layers_frost_damage", game.Players.LocalPlayer.Character, v:GetModelCFrame(), 99999, 99999)
+                        task.wait(0.2)
+                        end
+                    else
+                        print("Not within range of the mob.")
+                    end
+                else
+                    print("No valid boss entity found.")
+                end
+                task.wait(2)
+            end
+        end
+    end
+end)
+
+
+spawn(function()
+    while task.wait() do
+        if getgenv().Snow then
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:InvokeServer("skil_ting_asd",game:GetService("Players").LocalPlayer,"snow_breatihng_layers_frost",5)
+                task.wait(14)
+            end
+        end
+    end
+end)
+
+spawn(function()
+    while task.wait() do
+        if getgenv().TargetPlayersArrow then
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local players = game:GetService("Players"):GetPlayers()
+                local selectedPlayerName = getgenv().selectedPlayerName
+
+                local closestPlayer = getClosestPlayer(selectedPlayerName)
+
+                for _, player in ipairs(players) do
+                    if player ~= game.Players.LocalPlayer and (closestPlayer == nil or player == closestPlayer) then
+                        local character = player.Character
+                        if character and character:FindFirstChild("HumanoidRootPart") then
+                            if selectedPlayerName and player.Name == selectedPlayerName then
+                                local targetCFrame = character.HumanoidRootPart.CFrame
+                                for i = 1, 5 do
+                                    print("Tried To Kill "..player.Name)
+                                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("arrow_knock_back_damage", game.Players.LocalPlayer.Character, targetCFrame, character, 99999, 99999)
+                                    task.wait(0.2)
+                                end
+                                task.wait(1)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+
+
+spawn(function()
+    while task.wait() do
+        if getgenv().AllArrow then
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local parentFolder = game:GetService("Workspace").Mobs
+                local v = getclosestSkills(parentFolder)
+
+				while not v do
+					task.wait(0.5)
+					v = getclosestSkills(parentFolder)
+				end
+				
+				local modelCFrame = nil
+				if v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+					modelCFrame = v:GetModelCFrame()
+				end
+
+				while not modelCFrame do
+					task.wait(0.01)
+					if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+						modelCFrame = v:GetModelCFrame()
+					end
+					if not v then
+						break
+					end
+				end
+
+				if modelCFrame then
+                	game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("arrow_knock_back_damage",game.Players.LocalPlayer.Character,modelCFrame,v,9999,9999)
+                	task.wait(0.2)
+				end
+
+            end
+        end
+    end
+end)
+
+
+--// No Clip \\--
+local antifallActive = false 
+spawn(function()
+    game:GetService("RunService").Stepped:Connect(function()
+        if getgenv().Farm then
+            for _, v in pairs(game:GetService("Players").LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false    
+                end
+                if v:IsA("Humanoid") then
+                    v:ChangeState(11)
+                end
+            end
+            if not antifallActive then  -- Check if no clip is already active
+                antifallActive = true
+                EnableAntiFall()
+            end
+        else
+            if antifallActive then  -- Check if no clip is active
+                antifallActive = false
+                DisableAntiFall()
+            end
+        end
+    end)
+end)
+
+--// Farm Method \\--
+spawn(function()
+    while wait() do
+        SkillActive = AutoUseSkills and (getgenv().Farm and NearestMobs)
+         if FarmMethod == "Above" then
+                FarmModes = CFrame.new(0,getgenv().Distance,0) * CFrame.Angles(math.rad(-90),0,0)
+            elseif FarmMethod == "Below" then
+                FarmModes = CFrame.new(0,-getgenv().Distance,0) * CFrame.Angles(math.rad(90),0,0)
+            elseif FarmMethod == "Behind" then
+                FarmModes = CFrame.new(0,0,getgenv().Distance)
+            end
+    end
+end)
+
+
+
+--// Player Stats \\--
+local plr = game.Players.LocalPlayer
+local function updateLabels()
+    local playerData = game:GetService("ReplicatedStorage").Player_Data[plr.Name]
+    if playerData then
+        local statText = ""
+        statText = statText .. "Clan: " .. tostring(playerData.Clan.Value) .. "\n"
+        statText = statText .. "Race: " .. raceTable[playerData.Race.Value] .. "\n"
+        statText = statText .. "Demon Art Spins: " .. tostring(playerData.Demon_art_Spins.Value) .. "\n"
+        statText = statText .. "Clan Spins: " .. tostring(playerData.Spins.Value) .. "\n"
+        statText = statText .. "Yen: " .. tostring(playerData.Yen.Value) .. "\n"
+        local demonProgressText = string.format("Demon Progress: %d/%d", playerData.DemonProgress[1].Value, playerData.DemonProgress[2].Value)
+        statText = statText .. demonProgressText .. "\n"
+        local breathingProgressText = string.format("Breathing Progress: %d/%d", playerData.BreathingProgress[1].Value, playerData.BreathingProgress[2].Value)
+        statText = statText .. breathingProgressText
+
+        infoLabel:Set(statText)
+    end
+end
+
+repeat task.wait() until plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+local root = plr.Character:FindFirstChild("HumanoidRootPart")
+
+plr.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    setMovementStats()
+end)
+
+--AutoBoss--
+local FarmLoop = nil
+
+local function startFarmLoop()
+    if FarmLoop then -- Nếu đã có vòng lặp cũ thì dừng nó trước
+        FarmLoop:Disconnect()
+    end
+
+    FarmLoop = task.spawn(function()
+        local defeatedBosses = {}
+        local currentBossIndex = 1
+        local bossCount = #AllowedBosses
+
+        local function waitForCharacter()
+            local player = game.Players.LocalPlayer
+            while not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") do
+                player.CharacterAdded:Wait()
+                task.wait(1)
+            end
+        end
+
+        local function resetBossIndex()
+            currentBossIndex = 1
+        end
+
+        resetBossIndex()
+
+        while getgenv().Farm do
+            waitForCharacter()
+            UpdateActiveBossLocations()
+
+            if currentBossIndex == 1 then
+                table.sort(ActiveBossLocations, function(a, b)
+                    return GetDistance(a.Position) < GetDistance(b.Position)
+                end)
+            end
+
+            if bossCount == 0 then
+                task.wait(1)
+                continue
+            end
+
+            local boss = ActiveBossLocations[currentBossIndex]
+            if not boss then
+                currentBossIndex = (currentBossIndex % bossCount) + 1
+                continue
+            end
+
+            local bossCFrame = CFrame.new(boss.Position)
+            local TweenFa = Tween(bossCFrame)
+            AtBoss = false
+
+            repeat
+                task.wait()
+                if not game.Players.LocalPlayer.Character then
+                    if TweenFa then
+                        TweenFa:Cancel()
+                        TweenFa = nil
+                    end
+                    break
+                end
+            until not getgenv().Farm or GetDistance(bossCFrame) < 20
+
+            if not getgenv().Farm then break end
+            if TweenFa then
+                TweenFa:Cancel()
+                TweenFa = nil
+            end
+
+            local bossEntity = getclosest({boss.Name}, game:GetService("Workspace").Mobs)
+            if bossEntity and bossEntity:FindFirstChild("Humanoid") then
+                while getgenv().Farm and bossEntity.Parent and bossEntity.Humanoid.Health > 0 do
+                    if not game.Players.LocalPlayer.Character then
+                        break
+                    end
+                    task.wait()
+
+                    local entityCFrame = bossEntity:GetModelCFrame() * FarmModes
+
+                    if GetDistance(entityCFrame) >= 25 and GetDistance(entityCFrame) < 150 then
+                        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
+                    else
+                        if not TweenFa then
+                            TweenFa = Tween(entityCFrame)
+                        end
+                    end
+
+                    AtBoss = GetDistance(entityCFrame) < 25
+                end
+            else
+                task.wait(1)
+            end
+
+            currentBossIndex = (currentBossIndex % bossCount) + 1
+        end
+    end)
+end
+
+game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    if getgenv().Farm then
+        startFarmLoop()
+    end
+end)
+
+game:GetService("RunService").Heartbeat:Connect(function()
+    if getgenv().Farm and not FarmLoop then
+        startFarmLoop()
+    elseif not getgenv().Farm and FarmLoop then
+        task.cancel(FarmLoop)
+        FarmLoop = nil
+    end
+end)
+
+--// Update Labels / Dropdowns \\--
+spawn(function()
+    while task.wait(4) do
+        updateLabels()
+    end
+end)
+
+spawn(function()
+    while true do
+        wait(600) -- Chờ 10 phút (600 giây)
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new()) -- Giả lập nhấp chuột phải để reset AFK
+    end
+end)
+
+
+---Nhặt Hoa---
 local TweenService = game:GetService("TweenService")
 local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
 local Player = game.Players.LocalPlayer
@@ -1762,7 +3505,7 @@ end
 
 local function TweenToPosition(TargetPosition, Speed)
     local HRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-    if not HRP then return nil end
+    if not HRP then return end
 
     local distance = (HRP.Position - TargetPosition).magnitude
     local duration = distance / Speed
@@ -1781,7 +3524,7 @@ local function getFlower()
 
     local dist, flower = math.huge, nil
     for _, v in next, flowers:GetChildren() do
-        if v:IsA('Model') and v:FindFirstChild('WorldPivot') then
+        if v:IsA('Model') then
             local mag = (root.Position - v.WorldPivot.Position).magnitude
             if mag < dist then
                 dist = mag
@@ -1796,8 +3539,9 @@ spawn(function()
     while task.wait(1) do
         if AutoCollectLilys then
             local attempts = 0
-            while getgenv().AutoCollectLilys do
-                task.wait(0.5)
+            while AutoCollectLilys do
+                task.wait(0.2) -- Giảm thời gian chờ tìm hoa
+
                 local flower = getFlower()
 
                 if not flower then
@@ -1809,21 +3553,21 @@ spawn(function()
                     continue
                 end
 
-                if flower:FindFirstChild("WorldPivot") then
+                if flower.WorldPivot then
                     local tween, duration = TweenToPosition(flower.WorldPivot.Position, 250)
 
-                    local maxTime = duration + 5
+                    local maxTime = duration + 1 -- 1 giây dự phòng cho nhặt hoa
                     local startTime = tick()
 
                     repeat
                         task.wait()
-                    until not (tween.PlaybackState == Enum.PlaybackState.Playing) or (tick() - startTime > maxTime)
+                    until not tween.PlaybackState == Enum.PlaybackState.Playing or (tick() - startTime > maxTime)
 
                     if tween.PlaybackState == Enum.PlaybackState.Playing then
                         tween:Cancel()
-                        warn("⚠️ Di chuyển quá lâu, hủy di chuyển!")
                     end
 
+                    -- Khi đã đến hoa, tăng tốc độ nhặt nhanh hơn
                     local collected = false
                     for _, v in next, flower:GetDescendants() do
                         if v:IsA("ProximityPrompt") then
@@ -1832,9 +3576,10 @@ spawn(function()
                         end
                     end
 
+                    -- Theo dõi sự biến mất của hoa nhanh hơn
                     local waitTime = tick()
-                    while tick() - waitTime < 6 do
-                        task.wait(0.5)
+                    while tick() - waitTime < 2 do -- Chỉ chờ tối đa 2 giây để check hoa biến mất
+                        task.wait(0.1) -- Kiểm tra nhanh hơn
                         if not flower.Parent then
                             break
                         end
@@ -1852,3 +3597,4 @@ spawn(function()
         end
     end
 end)
+

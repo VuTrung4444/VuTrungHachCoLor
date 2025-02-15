@@ -1733,19 +1733,6 @@ end)
 
 
 ---Nhặt Hoa---
-MiscSection:AddToggle({
-    Name = "Auto Collect Lilys",
-    Flag = "CollectAllLilys",
-    Keybind = false,
-    Callback = function(v)
-        AutoCollectLilys = v
-        if v then
-            startCollecting()
-        else
-            stopCollecting()
-        end
-    end
-})
 
 local TweenService = game:GetService("TweenService")
 local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
@@ -1897,3 +1884,17 @@ end
 local function stopCollecting()
     AutoCollectLilys = false
 end
+
+MiscSection:AddToggle({
+    Name = "Auto Collect Lilys",
+    Flag = "CollectAllLilys",
+    Keybind = false,
+    Callback = function(v)
+        AutoCollectLilys = v
+        if v then
+            startCollecting()
+        else
+            stopCollecting()
+        end
+    end
+})

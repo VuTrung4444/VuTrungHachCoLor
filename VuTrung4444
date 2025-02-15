@@ -963,14 +963,6 @@ MiscSection:AddToggle({
 })
 
 
-MiscSection:AddToggle({
-	Name = "Auto Collect Lilys",
-	Flag = "CollectAllLilys",
-	Keybind = false,
-	Callback = function (v)
-		AutoCollectLilys = v
-	end
-})
 
 AutoSkills:AddToggle({
     Name = "Auto Skill",
@@ -1745,6 +1737,8 @@ local TweenService = game:GetService("TweenService")
 local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
 local Player = game.Players.LocalPlayer
 
+local AutoCollectLilys = false
+
 local function fireproximityprompt(ProximityPrompt, Amount, Skip)
     local HoldDuration = ProximityPrompt.HoldDuration
     if Skip then
@@ -1806,81 +1800,99 @@ if Player.Character then
     CharacterAdded(Player.Character)
 end
 
-spawn(function()
-    while task.wait(1) do
-        if AutoCollectLilys then
-            local attempts = 0
-            while AutoCollectLilys do
-                task.wait(0.5)
+local collectingThread = false
 
-                if not isCharacterValid() then
-                    warn("⚠️ Nhân vật không hợp lệ, đợi hồi sinh...")
-                    repeat task.wait(1) until isCharacterValid()
+local function startCollecting()
+    if collectingThread then
+        warn("⚠️ Đang thu thập, không khởi động lại!")
+        return
+    end
+
+    collectingThread = task.spawn(function()
+        while AutoCollectLilys do
+            task.wait(0.5)
+
+            if not isCharacterValid() then
+                warn("⚠️ Nhân vật không hợp lệ, đợi hồi sinh...")
+                repeat task.wait(1) until isCharacterValid()
+            end
+
+            local flower = getFlower()
+
+            if not flower then
+                warn("⚠️ Không tìm thấy hoa, chờ thêm...")
+                task.wait(2)
+                continue
+            end
+
+            if flower.WorldPivot then
+                local offset = Vector3.new(0, -2, 0)
+                local tween, duration = TweenToPosition(flower.WorldPivot.Position + offset, 250)
+
+                local maxTime = duration + 1
+                local startTime = tick()
+
+                repeat
+                    task.wait()
+                    if not isCharacterValid() then
+                        tween:Cancel()
+                        warn("⚠️ Nhân vật reset khi đang di chuyển!")
+                        break
+                    end
+                until tween.PlaybackState ~= Enum.PlaybackState.Playing or (tick() - startTime > maxTime)
+
+                if tween.PlaybackState == Enum.PlaybackState.Playing then
+                    tween:Cancel()
                 end
 
-                local flower = getFlower()
-
-                if not flower then
-                    attempts = attempts + 1
-                    if attempts >= 4 then
-                        warn("⚠️ Không tìm thấy hoa sau 4 lần thử.")
-                        task.wait(2)
-                    end
+                if not isCharacterValid() then
+                    warn("⚠️ Nhân vật không hợp lệ sau khi di chuyển, bỏ qua hoa này!")
                     continue
                 end
 
-                if flower.WorldPivot then
-                    local offset = Vector3.new(0, -2, 0) -- Có thể điều chỉnh nếu thấy cần thiết
-                    local tween, duration = TweenToPosition(flower.WorldPivot.Position + offset, 250)
-
-                    local maxTime = duration + 1
-                    local startTime = tick()
-
-                    repeat
-                        task.wait()
-                        if not isCharacterValid() then
-                            tween:Cancel()
-                            warn("⚠️ Nhân vật reset khi đang di chuyển!")
-                            break
-                        end
-                    until not tween.PlaybackState == Enum.PlaybackState.Playing or (tick() - startTime > maxTime)
-
-                    if tween.PlaybackState == Enum.PlaybackState.Playing then
-                        tween:Cancel()
+                local collected = false
+                for _, v in next, flower:GetDescendants() do
+                    if v:IsA("ProximityPrompt") then
+                        fireproximityprompt(v, 1, true)
+                        collected = true
                     end
-
-                    if not isCharacterValid() then
-                        warn("⚠️ Nhân vật không hợp lệ sau khi di chuyển, bỏ qua hoa này!")
-                        continue
-                    end
-
-                    local collected = false
-                    for _, v in next, flower:GetDescendants() do
-                        if v:IsA("ProximityPrompt") then
-                            fireproximityprompt(v, 1, true)
-                            collected = true
-                        end
-                    end
-
-                    local waitTime = tick()
-                    while tick() - waitTime < 2 do
-                        task.wait(0.5)
-                        if not flower.Parent then
-                            break
-                        end
-                    end
-
-                    if flower.Parent then
-                        warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất!")
-                    end
-                else
-                    warn("⚠️ WorldPivot của hoa không tồn tại!")
                 end
 
-                attempts = 0
+                local waitTime = tick()
+                while tick() - waitTime < 2 do
+                    task.wait(0.5)
+                    if not flower.Parent then
+                        break
+                    end
+                end
+
+                if flower.Parent then
+                    warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất!")
+                end
+            else
+                warn("⚠️ WorldPivot của hoa không tồn tại!")
             end
         end
+
+        collectingThread = false
+        warn("🌸 Đã dừng thu thập hoa!")
+    end)
+end
+
+local function stopCollecting()
+    AutoCollectLilys = false
+end
+
+MiscSection:AddToggle({
+    Name = "Auto Collect Lilys",
+    Flag = "CollectAllLilys",
+    Keybind = false,
+    Callback = function(v)
+        AutoCollectLilys = v
+        if v then
+            startCollecting()
+        else
+            stopCollecting()
+        end
     end
-end)
-
-
+})

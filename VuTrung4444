@@ -1733,12 +1733,13 @@ end)
 
 
 ---Nhặt Hoa---
-local lastFailedFlower = nil -- Lưu trữ bông hoa nhặt lỗi gần nhất
 local TweenService = game:GetService("TweenService")
 local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
 local Player = game.Players.LocalPlayer
 
 local AutoCollectLilys = false
+local collectingThread = false
+local lastFailedFlower = nil -- Lưu trữ bông hoa nhặt lỗi gần nhất
 
 local function fireproximityprompt(ProximityPrompt, Amount, Skip)
     local HoldDuration = ProximityPrompt.HoldDuration
@@ -1801,8 +1802,6 @@ if Player.Character then
     CharacterAdded(Player.Character)
 end
 
-local collectingThread = false
-
 local function startCollecting()
     if collectingThread then
         warn("⚠️ Đang thu thập, không khởi động lại!")
@@ -1851,33 +1850,28 @@ local function startCollecting()
                     continue
                 end
 
-local collected = false
-for _, v in next, flower:GetDescendants() do
-    if v:IsA("ProximityPrompt") then
-        fireproximityprompt(v, 1, true)
-        collected = true
-    end
-end
+                local collected = false
+                for _, v in next, flower:GetDescendants() do
+                    if v:IsA("ProximityPrompt") then
+                        fireproximityprompt(v, 1, true)
+                        collected = true
+                    end
+                end
 
-local waitTime = tick()
-while tick() - waitTime < 8 do -- Thời gian tối đa chờ hoa biến mất
-    task.wait(0.5)
-    if not flower.Parent then
-        collected = true
-        break
-    end
-end
+                local waitTime = tick()
+                while tick() - waitTime < 8 do
+                    task.wait(0.5)
+                    if not flower.Parent then
+                        collected = true
+                        break
+                    end
+                end
 
-if not collected or flower.Parent then
-    warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất! Đánh dấu hoa lỗi.")
-    lastFailedFlower = flower -- Đánh dấu bông hoa này là hoa lỗi
-else
-    lastFailedFlower = nil -- Đặt lại nếu thu thập thành công
-end
-
-                if flower.Parent then
-                    warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất! Chuyển sang hoa khác...")
-                    continue
+                if not collected or flower.Parent then
+                    warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất! Đánh dấu hoa lỗi.")
+                    lastFailedFlower = flower
+                else
+                    lastFailedFlower = nil
                 end
             else
                 warn("⚠️ WorldPivot của hoa không tồn tại!")

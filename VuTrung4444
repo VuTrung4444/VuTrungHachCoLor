@@ -1742,8 +1742,8 @@ end)
 
 ---Nhặt Hoa---
 local TweenService = game:GetService("TweenService")
-local Player = game.Players.LocalPlayer
 local flowers = game:GetService("Workspace").Demon_Flowers_Spawn
+local Player = game.Players.LocalPlayer
 
 local function fireproximityprompt(ProximityPrompt, Amount, Skip)
     local HoldDuration = ProximityPrompt.HoldDuration
@@ -1762,132 +1762,93 @@ end
 
 local function TweenToPosition(TargetPosition, Speed)
     local HRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-    if not HRP then return nil, 0 end
+    if not HRP then return nil end
 
     local distance = (HRP.Position - TargetPosition).magnitude
     local duration = distance / Speed
 
     local TweenInfoData = TweenInfo.new(duration, Enum.EasingStyle.Linear)
     local Tween = TweenService:Create(HRP, TweenInfoData, {CFrame = CFrame.new(TargetPosition)})
+    Tween:Play()
 
     return Tween, duration
 end
 
-local function collectFlower(flower)
-    local collected = false
-    for _, v in next, flower:GetDescendants() do
-        if v:IsA("ProximityPrompt") then
-            fireproximityprompt(v, 1, true)
-            collected = true
+local function getFlower()
+    local chr = Player.Character
+    local root = chr and chr:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+
+    local dist, flower = math.huge, nil
+    for _, v in next, flowers:GetChildren() do
+        if v:IsA('Model') and v:FindFirstChild('WorldPivot') then
+            local mag = (root.Position - v.WorldPivot.Position).magnitude
+            if mag < dist then
+                dist = mag
+                flower = v
+            end
         end
     end
-    return collected
+    return flower
 end
 
-local CollectFlowersLoop = nil
-local CurrentTween = nil
+spawn(function()
+    while task.wait(1) do
+        if getgenv().AutoCollectLilys then
+            local attempts = 0
+            while getgenv().AutoCollectLilys do
+                task.wait(0.5)
+                local flower = getFlower()
 
-local function startCollectFlowersLoop()
-    if CollectFlowersLoop then
-        task.cancel(CollectFlowersLoop)
-    end
-
-    CollectFlowersLoop = task.spawn(function()
-        local function getFlower()
-            local chr = Player.Character
-            local root = chr and chr:FindFirstChild("HumanoidRootPart")
-            if not root then return nil end
-
-            local dist, flower = math.huge
-            for i, v in next, flowers:GetChildren() do
-                if v:IsA('Model') and v:FindFirstChild("WorldPivot") then
-                    local mag = (root.Position - v.WorldPivot.Position).magnitude
-                    if mag < dist then
-                        dist = mag
-                        flower = v
+                if not flower then
+                    attempts = attempts + 1
+                    if attempts >= 5 then
+                        warn("⚠️ Không tìm thấy hoa sau 5 lần thử.")
+                        task.wait(2) -- Nghỉ trước khi thử lại để giảm tải
                     end
+                    continue
                 end
-            end
-            return flower
-        end
 
-        while getgenv().AutoCollectLilys do
-            if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
-                task.wait(1)
-                continue
-            end
+                if flower:FindFirstChild("WorldPivot") then
+                    local tween, duration = TweenToPosition(flower.WorldPivot.Position, 250)
 
-            local flower = getFlower()
+                    local maxTime = duration + 5
+                    local startTime = tick()
 
-            if flower and flower:FindFirstChild("WorldPivot") then
-                local targetPosition = flower.WorldPivot.Position
+                    repeat
+                        task.wait()
+                    until not (tween.PlaybackState == Enum.PlaybackState.Playing) or (tick() - startTime > maxTime)
 
-                local tween, duration = TweenToPosition(targetPosition, 250)
-                if tween then
-                    CurrentTween = tween
-                    tween:Play()
+                    if tween.PlaybackState == Enum.PlaybackState.Playing then
+                        tween:Cancel()
+                        warn("⚠️ Di chuyển quá lâu, hủy di chuyển!")
+                    end
 
-                    local completed = false
-                    tween.Completed:Connect(function()
-                        completed = true
-                    end)
-
-                    local waitTime = 0
-                    while not completed and waitTime < duration do
-                        if not getgenv().AutoCollectLilys or not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
-                            tween:Cancel()
-                            break
+                    local collected = false
+                    for _, v in next, flower:GetDescendants() do
+                        if v:IsA("ProximityPrompt") then
+                            fireproximityprompt(v, 1, true)
+                            collected = true
                         end
+                    end
 
+                    local waitTime = tick()
+                    while tick() - waitTime < 6 do
+                        task.wait(0.5)
                         if not flower.Parent then
-                            tween:Cancel()
-                            warn("⚠️ Hoa biến mất khi đang di chuyển!")
                             break
                         end
-
-                        task.wait(0.1)
-                        waitTime += 0.1
                     end
 
-                    CurrentTween = nil
-
-                    if completed and flower.Parent then
-                        local success = collectFlower(flower)
-
-                        if success then
-                            local startTime = tick()
-                            while tick() - startTime < 6 do
-                                task.wait(0.5)
-                                if not flower.Parent then break end
-                            end
-                        else
-                            warn("⚠️ Không nhặt được hoa!")
-                        end
+                    if flower.Parent then
+                        warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất!")
                     end
+                else
+                    warn("⚠️ WorldPivot của hoa không tồn tại!")
                 end
-            else
-                warn("⚠️ Không tìm thấy hoa, thử lại sau...")
-                task.wait(3)
+
+                attempts = 0
             end
         end
-    end)
-end
-
-game.Players.LocalPlayer.CharacterAdded:Connect(function()
-    if getgenv().AutoCollectLilys then
-        startCollectFlowersLoop()
-    end
-end)
-
-game:GetService("RunService").Heartbeat:Connect(function()
-    if getgenv().AutoCollectLilys and not CollectFlowersLoop then
-        startCollectFlowersLoop()
-    elseif not getgenv().AutoCollectLilys and CollectFlowersLoop then
-        if CurrentTween then
-            CurrentTween:Cancel()
-            CurrentTween = nil
-        end
-        task.cancel(CollectFlowersLoop)
-        CollectFlowersLoop = nil
     end
 end)

@@ -1431,18 +1431,10 @@ spawn(function()
                     local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
                     local distance = (v:GetModelCFrame().Position - playerPosition).Magnitude
                     if distance <= 50 then
-                        for i=1,5 do
-                        print("Tried To Kill "..v.Name)
                         game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("swamp_traveling_claws_damage", game.Players.LocalPlayer.Character, v:GetModelCFrame(), 200, 200)
                         task.wait(0.275)
-                        end
-                    else
-                        print("Not within range of the mob.")
                     end
-                else
-                    print("No valid boss entity found.")
                 end
-                task.wait(2)
             end
         end
     end

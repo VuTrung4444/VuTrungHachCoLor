@@ -150,9 +150,6 @@ local chr = Player.Character
 local root = chr and chr:FindFirstChild("HumanoidRootPart")
 
 local AutoCollectLilys = false
-
-
-local TeleportSpeed = 250;
 local NextFrame = RunService.Heartbeat;
 
 

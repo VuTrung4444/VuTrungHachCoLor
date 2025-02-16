@@ -166,7 +166,6 @@ local Map = Workspace:WaitForChild("Map")
 
 local activeToggle = nil
 local toggles = {}
-setfpscap(60)
 
 --// Tween \\--
 local function GetDistance(Endpoint)
@@ -1805,7 +1804,8 @@ local function startCollecting()
     if collectingThread then
         return
     end
-
+	setfpscap(60)
+	
     collectingThread = task.spawn(function()
         while AutoCollectLilys do
             task.wait(0.5)

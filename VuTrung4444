@@ -169,6 +169,7 @@ local Map = Workspace:WaitForChild("Map")
 
 local activeToggle = nil
 local toggles = {}
+setfpscap(60)
 
 --// Tween \\--
 local function GetDistance(Endpoint)
@@ -1805,7 +1806,6 @@ local collectingThread = false
 
 local function startCollecting()
     if collectingThread then
-        warn("⚠️ Đang thu thập, không khởi động lại!")
         return
     end
 
@@ -1814,14 +1814,18 @@ local function startCollecting()
             task.wait(0.5)
 
             if not isCharacterValid() then
-                warn("⚠️ Nhân vật không hợp lệ, đợi hồi sinh...")
                 repeat task.wait(1) until isCharacterValid()
             end
+		
+			for flower in pairs(failedFlowers) do
+				if not flower.Parent then
+					failedFlowers[flower] = nil
+				end
+			end
 
             local flower = getFlower()
 
             if not flower then
-                warn("⚠️ Không tìm thấy hoa, chờ thêm...")
                 task.wait(2)
                 continue
             end
@@ -1864,8 +1868,8 @@ local function startCollecting()
 
                 local waitTime = tick()
                 local flowerDisappeared = false
-                while tick() - waitTime < 8 do
-                    task.wait(0.5)
+                while tick() - waitTime < 5 do
+                    task.wait(1)
                     if not flower.Parent then
                         flowerDisappeared = true
                         break
@@ -1873,19 +1877,15 @@ local function startCollecting()
                 end
 
                 if flowerDisappeared then
-                    warn("✔️ Hoa đã nhặt thành công!")
                 else
-                    warn("⚠️ Không thể nhặt hoa hoặc hoa không biến mất! Chuyển sang hoa khác")
                     failedFlowers[flower] = true
                 end
             else
-                warn("⚠️ WorldPivot của hoa không tồn tại!")
                 failedFlowers[flower] = true
             end
         end
 
         collectingThread = false
-        warn("🌸 Đã dừng thu thập hoa!")
     end)
 end
 

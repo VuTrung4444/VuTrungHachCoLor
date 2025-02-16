@@ -348,7 +348,7 @@ local BossLocationsMap2 = {
     { Name = "Enme", Position = Vector3.new(1591.18, 483.61, -685.5775) },
     { Name = "Renpeke", Position = Vector3.new(-1265, 600.57, -659.554) },
     { Name = "Swampy", Position = Vector3.new(-1364.28, 600.96875, -223.2) },
-    { Name = "Sound Trainee", Position = Vector3.new(1881.34, 662.42, -2800.46) },
+    { Name = "Sound Trainee", Position = Vector3.new(1881.34, 675.42, -2800.46) },
     { Name = "Tengen", Position = Vector3.new(1460.45, 486.122, -3137.05) },
     { Name = "Snow Trainee", Position = Vector3.new(255.18, 530.94, -2989.45) },
     { Name = "Douma", Position = Vector3.new(-0.146, 512.331, -1674.79) },
@@ -555,10 +555,10 @@ MainSection:AddToggle({
 })
 
 MainSection:AddToggle({
-    Name = "Snow Aura [Near Mobs]",
-    Flag = "Snow",
+    Name = "Swamp Aura [Near Mobs]",
+    Flag = "Swamp",
     Callback = function (v)
-        getgenv().Snow = v
+        getgenv().Swamp = v
     end
 })
 
@@ -1426,7 +1426,7 @@ end)
 
 spawn(function()
     while task.wait() do
-        if getgenv().Snow then
+        if getgenv().Swamp then
             if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 local parentFolder = game:GetService("Workspace").Mobs
                 local v = getclosestSkills(parentFolder)
@@ -1436,8 +1436,8 @@ spawn(function()
                     if distance <= 50 then
                         for i=1,5 do
                         print("Tried To Kill "..v.Name)
-                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("snow_breatihng_layers_frost_damage", game.Players.LocalPlayer.Character, v:GetModelCFrame(), 99999, 99999)
-                        task.wait(0.2)
+                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("swamp_traveling_claws_damage", game.Players.LocalPlayer.Character, v:GetModelCFrame(), 200, 200)
+                        task.wait(0.275)
                         end
                     else
                         print("Not within range of the mob.")
@@ -1454,10 +1454,10 @@ end)
 
 spawn(function()
     while task.wait() do
-        if getgenv().Snow then
+        if getgenv().Swamp then
             if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:InvokeServer("skil_ting_asd",game:GetService("Players").LocalPlayer,"snow_breatihng_layers_frost",5)
-                task.wait(14)
+                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:InvokeServer("skil_ting_asd",game:GetService("Players").LocalPlayer,"swamp_traveling_claws_damage",5)
+                task.wait(10)
             end
         end
     end
@@ -1906,4 +1906,3 @@ MiscSection:AddToggle({
         end
     end
 })
-

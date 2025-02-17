@@ -335,7 +335,7 @@ local BossLocationsMap1 = {
     { Name = "Yahaba", Position = Vector3.new(1409.45, 315.9, -4647.8) },
     { Name = "Susamaru", Position = Vector3.new(1367.45, 315.9, -4553.09) },
     { Name = "Bandit Kaden", Position = Vector3.new(-546.917, 304.467, -2860.067) },
-    { Name = "Zanegutsu Kuuchie", Position = Vector3.new(-351.28, 425.36, -2331.425) },
+    { Name = "Zanegutsu Kuuchie", Position = Vector3.new(-351.28, 445.36, -2331.425) },
     { Name = "Sabito", Position = Vector3.new(1237.92, 275.42, -2807.998) }
 }
 
@@ -1408,8 +1408,6 @@ spawn(function()
     end
 end)
 
-
-
 spawn(function()
     while task.wait() do
         if getgenv().Arrow or getgenv().TargetPlayersArrow or getgenv().AllArrow then
@@ -1421,18 +1419,33 @@ spawn(function()
     end
 end)
 
+
 spawn(function()
     while task.wait() do
         if getgenv().Swamp then
             if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 local parentFolder = game:GetService("Workspace").Mobs
                 local v = getclosestSkills(parentFolder)
+
                 if v and table.find(AllowedBosses, v.Name) then
-                    local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+                    local playerPosition = plr.Character.HumanoidRootPart.Position
                     local distance = (v:GetModelCFrame().Position - playerPosition).Magnitude
                     if distance <= 50 then
-                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("swamp_traveling_claws_damage", game.Players.LocalPlayer.Character, v:GetModelCFrame(), 200, 200)
-                        task.wait(0.275)
+                        for i = 1, 2 do -- Đánh 2 lần
+                            game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                                "swamp_traveling_claws_damage",
+                                plr.Character,
+                                v:GetModelCFrame(),
+                                200,
+                                200
+                            )
+                            task.wait(10) -- Giữ khoảng cách giữa 2 lần đánh
+                        end
+
+                        -- Reset Swamp lâu hơn để chắc chắn
+                        getgenv().Swamp = false
+                        task.wait(25) -- Thử 25 giây thay vì 30 để tăng nhẹ tốc độ
+                        getgenv().Swamp = true
                     end
                 end
             end
@@ -1440,17 +1453,26 @@ spawn(function()
     end
 end)
 
-
+-- Buff hỗ trợ, giữ nguyên
 spawn(function()
     while task.wait() do
         if getgenv().Swamp then
             if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:InvokeServer("skil_ting_asd",game:GetService("Players").LocalPlayer,"swamp_traveling_claws_damage",5)
-                task.wait(10)
+                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:InvokeServer(
+                    "skil_ting_asd",
+                    plr,
+                    "swamp_traveling_claws_damage",
+                    5
+                )
+                task.wait(20)
             end
         end
     end
 end)
+
+
+
+
 
 spawn(function()
     while task.wait() do

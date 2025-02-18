@@ -1818,7 +1818,6 @@ local function startCollecting()
     if collectingThread then
         return
     end
-	setfpscap(60)
 	
     collectingThread = task.spawn(function()
         while AutoCollectLilys do

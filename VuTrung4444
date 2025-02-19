@@ -1795,6 +1795,7 @@ local function getFlower()
     end
     return flower
 end
+
 local function isCharacterValid()
     local character = Player.Character
     return character and character.Parent and character:FindFirstChild("HumanoidRootPart")
@@ -1815,7 +1816,7 @@ local function startCollecting()
     if collectingThread then
         return
     end
-	
+
     collectingThread = task.spawn(function()
         while AutoCollectLilys do
             task.wait(0.5)
@@ -1823,12 +1824,13 @@ local function startCollecting()
             if not isCharacterValid() then
                 repeat task.wait(1) until isCharacterValid()
             end
-		
-			for flower in pairs(failedFlowers) do
-				if not flower.Parent then
-					failedFlowers[flower] = nil
-				end
-			end
+
+            -- Xoá hoa lỗi nếu chúng biến mất
+            for flower in pairs(failedFlowers) do
+                if not flower.Parent then
+                    failedFlowers[flower] = nil
+                end
+            end
 
             local flower = getFlower()
 
@@ -1848,7 +1850,6 @@ local function startCollecting()
                     task.wait()
                     if not isCharacterValid() then
                         tween:Cancel()
-                        warn("⚠️ Nhân vật reset khi đang di chuyển!")
                         break
                     end
                 until tween.PlaybackState ~= Enum.PlaybackState.Playing or (tick() - startTime > maxTime)
@@ -1858,33 +1859,40 @@ local function startCollecting()
                 end
 
                 if not isCharacterValid() then
-                    warn("⚠️ Nhân vật không hợp lệ sau khi di chuyển, bỏ qua hoa này!")
                     failedFlowers[flower] = true
                     continue
                 end
 
-                task.wait(0.75) -- Chờ 0.75 giây trước khi nhặt hoa
+                task.wait(0.75)
 
                 local collected = false
                 for _, v in next, flower:GetDescendants() do
                     if v:IsA("ProximityPrompt") then
-                        fireproximityprompt(v, 1, true)
-                        collected = true
+                        -- Thử nhặt 3 lần thay vì 1 lần
+                        for attempt = 1, 3 do
+                            fireproximityprompt(v, 1, true)
+                            task.wait(0.5) -- Chờ giữa các lần nhặt để đảm bảo tín hiệu gửi lên server
+                            if not flower.Parent then -- Nếu hoa biến mất thì ngừng thử
+                                collected = true
+                                break
+                            end
+                        end
                     end
                 end
 
-                local waitTime = tick()
-                local flowerDisappeared = false
-                while tick() - waitTime < 5 do
-                    task.wait(1)
-                    if not flower.Parent then
-                        flowerDisappeared = true
-                        break
+                -- Kiểm tra lại nếu hoa đã biến mất
+                if not collected then
+                    local waitTime = tick()
+                    while tick() - waitTime < 3 do
+                        task.wait(0.5)
+                        if not flower.Parent then
+                            collected = true
+                            break
+                        end
                     end
                 end
 
-                if flowerDisappeared then
-                else
+                if not collected then
                     failedFlowers[flower] = true
                 end
             else

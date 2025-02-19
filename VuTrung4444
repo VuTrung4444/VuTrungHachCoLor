@@ -1725,6 +1725,20 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end
 end)
 
+--// Update Labels / Dropdowns \\--
+spawn(function()
+    while task.wait(4) do
+        updateLabels()
+    end
+end)
+
+spawn(function()
+    while true do
+        wait(600) -- Chờ 10 phút (600 giây)
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new()) -- Giả lập nhấp chuột phải để reset AFK
+    end
+end)
 
 ---Nhặt Hoa---
 local TweenService = game:GetService("TweenService")

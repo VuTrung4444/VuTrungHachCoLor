@@ -1616,7 +1616,7 @@ end)
 
 --AutoBoss--
 local FarmLoop = nil
-local ResetPosition = CFrame.new(0, 500, 0) -- Toạ độ xa để "reset" nếu không có boss
+local VisitedBosses = {}
 
 local function startFarmLoop()
     if FarmLoop then
@@ -1624,9 +1624,7 @@ local function startFarmLoop()
     end
 
     FarmLoop = task.spawn(function()
-        local currentBossIndex = 1
-        local lastBossEntity = nil
-
+        local bossCount = #AllowedBosses
         local function waitForCharacter()
             local player = game.Players.LocalPlayer
             while not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") do
@@ -1639,40 +1637,42 @@ local function startFarmLoop()
             waitForCharacter()
             UpdateActiveBossLocations()
 
-            if #ActiveBossLocations == 0 then
-                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = ResetPosition
-                task.wait(2)
+            if bossCount == 0 then
+                task.wait(1)
                 continue
             end
 
-            if currentBossIndex > #ActiveBossLocations then
-                currentBossIndex = 1
+            local candidateBosses = {}
+            for _, boss in pairs(ActiveBossLocations) do
+                if not VisitedBosses[boss.Name] then
+                    table.insert(candidateBosses, boss)
+                end
             end
 
-            -- Sắp xếp lại boss nếu vừa reset vòng lặp
-            if currentBossIndex == 1 then
-                table.sort(ActiveBossLocations, function(a, b)
-                    return GetDistance(a.Position) < GetDistance(b.Position)
-                end)
+            if #candidateBosses == 0 then
+                VisitedBosses = {} -- Reset khi đã thăm hết
+                candidateBosses = ActiveBossLocations
             end
 
-            local boss = ActiveBossLocations[currentBossIndex]
+            table.sort(candidateBosses, function(a, b)
+                return GetDistance(a.Position) < GetDistance(b.Position)
+            end)
+
+            local boss = candidateBosses[1]
             if not boss then
-                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = ResetPosition
                 task.wait(1)
-                currentBossIndex = 1
                 continue
             end
 
             local bossCFrame = CFrame.new(boss.Position)
             local TweenFa = Tween(bossCFrame)
-            AtBoss = false
 
             repeat
                 task.wait()
                 if not game.Players.LocalPlayer.Character then
                     if TweenFa then
                         TweenFa:Cancel()
+                        TweenFa = nil
                     end
                     break
                 end
@@ -1681,13 +1681,11 @@ local function startFarmLoop()
             if not getgenv().Farm then break end
             if TweenFa then
                 TweenFa:Cancel()
+                TweenFa = nil
             end
 
             local bossEntity = getclosest({boss.Name}, game:GetService("Workspace").Mobs)
-
             if bossEntity and bossEntity:FindFirstChild("Humanoid") then
-                lastBossEntity = bossEntity
-
                 while getgenv().Farm and bossEntity.Parent and bossEntity.Humanoid.Health > 0 do
                     if not game.Players.LocalPlayer.Character then
                         break
@@ -1695,34 +1693,19 @@ local function startFarmLoop()
                     task.wait()
 
                     local entityCFrame = bossEntity:GetModelCFrame() * FarmModes
-                    local distance = GetDistance(entityCFrame)
-
-                    if distance >= 25 and distance < 150 then
+                    if GetDistance(entityCFrame) >= 25 and GetDistance(entityCFrame) < 150 then
                         game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
                     else
                         if not TweenFa then
                             TweenFa = Tween(entityCFrame)
                         end
                     end
-
-                    AtBoss = distance < 25
                 end
             else
-                -- Nếu không tìm thấy boss thì "reset vị trí" và vòng lặp
-                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = ResetPosition
-                task.wait(2)
-                currentBossIndex = 1
-                continue
+                task.wait(1)
             end
 
-            -- Chuyển sang boss kế tiếp
-            currentBossIndex = currentBossIndex + 1
-
-            if currentBossIndex > #ActiveBossLocations then
-                currentBossIndex = 1
-            end
-
-            task.wait(0.5)
+            VisitedBosses[boss.Name] = true
         end
     end)
 end
@@ -1741,7 +1724,6 @@ game:GetService("RunService").Heartbeat:Connect(function()
         FarmLoop = nil
     end
 end)
-
 
 
 ---Nhặt Hoa---

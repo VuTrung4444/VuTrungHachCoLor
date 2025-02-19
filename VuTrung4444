@@ -1619,11 +1619,10 @@ local FarmLoop = nil
 local IsFarming = false
 
 local function startFarmLoop()
-    if IsFarming then return end -- Đảm bảo không khởi động thêm khi đang chạy
+    if IsFarming then return end
 
     IsFarming = true
     FarmLoop = task.spawn(function()
-        local defeatedBosses = {}
         local currentBossIndex = 1
         local bossCount = #AllowedBosses
 
@@ -1683,23 +1682,32 @@ local function startFarmLoop()
                     if not game.Players.LocalPlayer.Character then
                         break
                     end
-                    task.wait()
 
                     local entityCFrame = bossEntity:GetModelCFrame() * FarmModes
+                    local distance = GetDistance(entityCFrame)
 
-                    if GetDistance(entityCFrame) >= 25 and GetDistance(entityCFrame) < 150 then
-                        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
-                    else
+                    if distance > 300 then
+                        -- Xa hơn 300 -> Bay Tween
                         if TweenFa then
                             TweenFa:Cancel()
                         end
                         TweenFa = Tween(entityCFrame)
+                    elseif distance >= 25 and distance <= 300 then
+                        -- Từ 25 đến 300 -> Dịch chuyển nhanh
+                        if TweenFa then
+                            TweenFa:Cancel()
+                            TweenFa = nil
+                        end
+                        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
                     end
 
-                    AtBoss = GetDistance(entityCFrame) < 25
+                    AtBoss = distance < 25
+
+                    task.wait() -- Tránh loop tràn
                 end
                 if TweenFa then
                     TweenFa:Cancel()
+                    TweenFa = nil
                 end
             else
                 task.wait(1)
@@ -1725,6 +1733,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
         getgenv().Farm = false
     end
 end)
+
 
 --// Update Labels / Dropdowns \\--
 spawn(function()

@@ -1616,11 +1616,11 @@ end)
 
 --AutoBoss--
 local FarmLoop = nil
-local IsFarming = false
 
 local function startFarmLoop()
-    if IsFarming then return end
-    IsFarming = true
+    if FarmLoop then -- Nếu đã có vòng lặp cũ thì dừng nó trước
+        FarmLoop:Disconnect()
+    end
 
     FarmLoop = task.spawn(function()
         local defeatedBosses = {}
@@ -1635,111 +1635,97 @@ local function startFarmLoop()
             end
         end
 
+        local function resetBossIndex()
+            currentBossIndex = 1
+        end
+
+        resetBossIndex()
+
         while getgenv().Farm do
             waitForCharacter()
             UpdateActiveBossLocations()
 
-            -- Nếu không có boss nào thì đợi 1 giây và tiếp tục
-            if #ActiveBossLocations == 0 then
-                task.wait(1)
-                continue
-            end
-
-            -- Sắp xếp boss theo khoảng cách nếu là lần đầu hoặc bắt đầu vòng mới
             if currentBossIndex == 1 then
                 table.sort(ActiveBossLocations, function(a, b)
                     return GetDistance(a.Position) < GetDistance(b.Position)
                 end)
             end
 
-            -- Lấy boss theo thứ tự đã sắp xếp
-            local boss = ActiveBossLocations[currentBossIndex]
+            if bossCount == 0 then
+                task.wait(1)
+                continue
+            end
 
+            local boss = ActiveBossLocations[currentBossIndex]
             if not boss then
-                -- Nếu boss bị tiêu diệt hoặc mất, chuyển sang boss kế tiếp
-                currentBossIndex = (currentBossIndex % #ActiveBossLocations) + 1
+                currentBossIndex = (currentBossIndex % bossCount) + 1
                 continue
             end
 
             local bossCFrame = CFrame.new(boss.Position)
-
-            -- Di chuyển đến boss
             local TweenFa = Tween(bossCFrame)
             AtBoss = false
 
             repeat
                 task.wait()
-                if not getgenv().Farm or not game.Players.LocalPlayer.Character then
-                    TweenFa:Cancel()
-                    IsFarming = false
-                    return
+                if not game.Players.LocalPlayer.Character then
+                    if TweenFa then
+                        TweenFa:Cancel()
+                        TweenFa = nil
+                    end
+                    break
                 end
-            until GetDistance(bossCFrame) < 20
+            until not getgenv().Farm or GetDistance(bossCFrame) < 20
 
-            TweenFa:Cancel()
+            if not getgenv().Farm then break end
+            if TweenFa then
+                TweenFa:Cancel()
+                TweenFa = nil
+            end
 
-            -- Tìm thực thể boss trong workspace
             local bossEntity = getclosest({boss.Name}, game:GetService("Workspace").Mobs)
-
             if bossEntity and bossEntity:FindFirstChild("Humanoid") then
                 while getgenv().Farm and bossEntity.Parent and bossEntity.Humanoid.Health > 0 do
                     if not game.Players.LocalPlayer.Character then
                         break
                     end
+                    task.wait()
 
                     local entityCFrame = bossEntity:GetModelCFrame() * FarmModes
-                    local distance = GetDistance(entityCFrame)
 
-                    if distance > 300 then
-                        -- Bay xa bằng Tween
-                        if TweenFa then TweenFa:Cancel() end
-                        TweenFa = Tween(entityCFrame)
-                    elseif distance >= 25 and distance <= 300 then
-                        -- Dịch chuyển nhanh
-                        if TweenFa then TweenFa:Cancel() TweenFa = nil end
+                    if GetDistance(entityCFrame) >= 25 and GetDistance(entityCFrame) < 150 then
                         game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
+                    else
+                        if not TweenFa then
+                            TweenFa = Tween(entityCFrame)
+                        end
                     end
 
-                    AtBoss = distance < 25
-
-                    task.wait()
+                    AtBoss = GetDistance(entityCFrame) < 25
                 end
-
-                if TweenFa then TweenFa:Cancel() end
+            else
+                task.wait(1)
             end
 
-            -- Chuyển sang boss tiếp theo
-            currentBossIndex = (currentBossIndex % #ActiveBossLocations) + 1
+            currentBossIndex = (currentBossIndex % bossCount) + 1
         end
-
-        IsFarming = false
     end)
 end
 
--- Theo dõi bật/tắt nút Farm để chạy vòng lặp
-task.spawn(function()
-    while task.wait() do
-        if getgenv().Farm then
-            if not IsFarming then
-                startFarmLoop()
-            end
-        else
-            if FarmLoop then
-                task.cancel(FarmLoop)
-                FarmLoop = nil
-                IsFarming = false
-            end
-        end
-    end
-end)
-
--- Nếu chết thì tự động farm lại khi hồi sinh
 game.Players.LocalPlayer.CharacterAdded:Connect(function()
-    if getgenv().Farm and not IsFarming then
+    if getgenv().Farm then
         startFarmLoop()
     end
 end)
 
+game:GetService("RunService").Heartbeat:Connect(function()
+    if getgenv().Farm and not FarmLoop then
+        startFarmLoop()
+    elseif not getgenv().Farm and FarmLoop then
+        task.cancel(FarmLoop)
+        FarmLoop = nil
+    end
+end)
 
 --// Update Labels / Dropdowns \\--
 spawn(function()

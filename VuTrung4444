@@ -62,7 +62,7 @@ plr.CharacterAdded:Connect(function(Char)
     Humanoid.JumpPower = JumpPower
 end)
 
-local AtBoss = "false"
+local AtBoss = false
 local SkillCooldowns = {}
 local SelectedSkills = {"Z", "X", "C", "V"} -- Danh sách kỹ năng hợp lệ
 local skill = SelectedSkills[1] -- Lấy kỹ năng đầu tiên

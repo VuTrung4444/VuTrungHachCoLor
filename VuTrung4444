@@ -1666,6 +1666,7 @@ local function startFarmLoop()
 
             local bossCFrame = CFrame.new(boss.Position)
             local TweenFa = Tween(bossCFrame)
+		AtBoss = false
 
             repeat
                 task.wait()
@@ -1700,6 +1701,7 @@ local function startFarmLoop()
                             TweenFa = Tween(entityCFrame)
                         end
                     end
+                    AtBoss = GetDistance(entityCFrame) < 25
                 end
             else
                 task.wait(1)

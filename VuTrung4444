@@ -1795,7 +1795,6 @@ local function getFlower()
     end
     return flower
 end
-
 local function isCharacterValid()
     local character = Player.Character
     return character and character.Parent and character:FindFirstChild("HumanoidRootPart")
@@ -1816,7 +1815,7 @@ local function startCollecting()
     if collectingThread then
         return
     end
-
+	
     collectingThread = task.spawn(function()
         while AutoCollectLilys do
             task.wait(0.5)
@@ -1824,13 +1823,12 @@ local function startCollecting()
             if not isCharacterValid() then
                 repeat task.wait(1) until isCharacterValid()
             end
-
-            -- Xoá hoa lỗi nếu chúng biến mất
-            for flower in pairs(failedFlowers) do
-                if not flower.Parent then
-                    failedFlowers[flower] = nil
-                end
-            end
+		
+			for flower in pairs(failedFlowers) do
+				if not flower.Parent then
+					failedFlowers[flower] = nil
+				end
+			end
 
             local flower = getFlower()
 
@@ -1850,6 +1848,7 @@ local function startCollecting()
                     task.wait()
                     if not isCharacterValid() then
                         tween:Cancel()
+                        warn("⚠️ Nhân vật reset khi đang di chuyển!")
                         break
                     end
                 until tween.PlaybackState ~= Enum.PlaybackState.Playing or (tick() - startTime > maxTime)
@@ -1859,11 +1858,12 @@ local function startCollecting()
                 end
 
                 if not isCharacterValid() then
+                    warn("⚠️ Nhân vật không hợp lệ sau khi di chuyển, bỏ qua hoa này!")
                     failedFlowers[flower] = true
                     continue
                 end
 
-                task.wait(0.75)
+                task.wait(0.75) -- Chờ 0.75 giây trước khi nhặt hoa
 
                 local collected = false
                 for _, v in next, flower:GetDescendants() do
@@ -1893,6 +1893,7 @@ local function startCollecting()
                 end
 
                 if not collected then
+                else
                     failedFlowers[flower] = true
                 end
             else

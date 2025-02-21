@@ -792,6 +792,7 @@ SpeedAndJump:AddSlider({
     Min = 16,
     Max = 300,
     Flag = "WalkSpeed",
+	Textbox = true,
     Callback = function(State)
         WalkSpeed = State
         if game.Players.LocalPlayer.Character then
@@ -809,6 +810,7 @@ SpeedAndJump:AddSlider({
     Min = 50,
     Max = 1000,
     Flag = "JumpPower",
+	Textbox = true,
     Callback = function(State)
         JumpPower = State
         if game.Players.LocalPlayer.Character then

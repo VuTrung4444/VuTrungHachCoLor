@@ -1850,7 +1850,6 @@ local function startCollecting()
                     task.wait()
                     if not isCharacterValid() then
                         tween:Cancel()
-                        warn("⚠️ Nhân vật reset khi đang di chuyển!")
                         break
                     end
                 until tween.PlaybackState ~= Enum.PlaybackState.Playing or (tick() - startTime > maxTime)
@@ -1860,7 +1859,6 @@ local function startCollecting()
                 end
 
                 if not isCharacterValid() then
-                    warn("⚠️ Nhân vật không hợp lệ sau khi di chuyển, bỏ qua hoa này!")
                     failedFlowers[flower] = true
                     continue
                 end
@@ -1870,31 +1868,22 @@ local function startCollecting()
                 local collected = false
                 for _, v in next, flower:GetDescendants() do
                     if v:IsA("ProximityPrompt") then
-                        -- Thử nhặt 3 lần thay vì 1 lần
-                        for attempt = 1, 3 do
-                            fireproximityprompt(v, 1, true)
-                            task.wait(0.75) -- Chờ giữa các lần nhặt để đảm bảo tín hiệu gửi lên server
-                            if not flower.Parent then -- Nếu hoa biến mất thì ngừng thử
-                                collected = true
-                                break
-                            end
-                        end
+                        fireproximityprompt(v, 1, true)
+                        collected = true
                     end
                 end
 
-                -- Kiểm tra lại nếu hoa đã biến mất
-                if not collected then
-                    local waitTime = tick()
-                    while tick() - waitTime < 3 do
-                        task.wait(0.5)
-                        if not flower.Parent then
-                            collected = true
-                            break
-                        end
+                local waitTime = tick()
+                local flowerDisappeared = false
+                while tick() - waitTime < 5 do
+                    task.wait(1)
+                    if not flower.Parent then
+                        flowerDisappeared = true
+                        break
                     end
                 end
 
-                if not collected then
+                if flowerDisappeared then
                 else
                     failedFlowers[flower] = true
                 end

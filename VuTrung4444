@@ -351,7 +351,8 @@ local BossLocationsMap2 = {
     { Name = "Douma", Position = Vector3.new(-0.146, 512.331, -1674.79) },
     { Name = "Muichiro Tokito", Position = Vector3.new(4513.83, 672.41, -559.748) },
     { Name = "Rengoku", Position = Vector3.new(3654.3999, 672.91, -348.877) },
-    { Name = "Slasher", Position = Vector3.new(908.402, 487.295, -1351.5653) }
+    { Name = "Slasher", Position = Vector3.new(908.402, 487.295, -1351.5653) },
+	{ Name = "Nomay Bandit Boss", Position = Vector3.new(3467.59399, 673.1099, -1882.6058) }
 }
 
 local Map1 = {

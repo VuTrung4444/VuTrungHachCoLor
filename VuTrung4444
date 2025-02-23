@@ -324,6 +324,7 @@ local AllowedBosses = {
     "Susamaru",
     "Yahaba",
 	"Bandit Kaden",
+	"Nomay Bandit Boss",
 }
 
 local BossLocationsMap1 = {

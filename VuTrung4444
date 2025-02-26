@@ -536,6 +536,20 @@ MainSection:AddToggle({
     end
 })
 
+MainSection:AddToggle({
+    Name = "Move Around [Arrow]",
+    Flag = "MoveAroundBosses",
+    Callback = function(v)
+        getgenv().MoveAround = v
+        if not v then
+            local plr = game.Players.LocalPlayer
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+})
 
 MainSection:AddToggle({
     Name = "Arrow Aura [Near Mobs]",
@@ -553,13 +567,7 @@ MainSection:AddToggle({
     end
 })
 
-MainSection:AddToggle({
-    Name = "Swamp Aura [Near Mobs]",
-    Flag = "Swamp",
-    Callback = function (v)
-        getgenv().Swamp = v
-    end
-})
+
 
 MainSection:AddTextbox({
     Name = 'Player Target',
@@ -1424,59 +1432,6 @@ spawn(function()
 end)
 
 
-spawn(function()
-    while task.wait() do
-        if getgenv().Swamp then
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local parentFolder = game:GetService("Workspace").Mobs
-                local v = getclosestSkills(parentFolder)
-
-                if v and table.find(AllowedBosses, v.Name) then
-                    local playerPosition = plr.Character.HumanoidRootPart.Position
-                    local distance = (v:GetModelCFrame().Position - playerPosition).Magnitude
-                    if distance <= 50 then
-                        for i = 1, 2 do -- Đánh 2 lần
-                            game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                                "swamp_traveling_claws_damage",
-                                plr.Character,
-                                v:GetModelCFrame(),
-                                200,
-                                200
-                            )
-                            task.wait(10) -- Giữ khoảng cách giữa 2 lần đánh
-                        end
-
-                        -- Reset Swamp lâu hơn để chắc chắn
-                        getgenv().Swamp = false
-                        task.wait(25) -- Thử 25 giây thay vì 30 để tăng nhẹ tốc độ
-                        getgenv().Swamp = true
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- Buff hỗ trợ, giữ nguyên
-spawn(function()
-    while task.wait() do
-        if getgenv().Swamp then
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S_:InvokeServer(
-                    "skil_ting_asd",
-                    plr,
-                    "swamp_traveling_claws_damage",
-                    5
-                )
-                task.wait(20)
-            end
-        end
-    end
-end)
-
-
-
-
 
 spawn(function()
     while task.wait() do
@@ -1507,8 +1462,6 @@ spawn(function()
         end
     end
 end)
-
-
 
 spawn(function()
     while task.wait() do
@@ -1730,6 +1683,88 @@ game:GetService("RunService").Heartbeat:Connect(function()
         FarmLoop = nil
     end
 end)
+
+
+--MoveAround--
+local MoveLoop = nil
+local VisitedBosses = {}
+
+local function startMoveLoop()
+    if MoveLoop then
+        MoveLoop:Disconnect()
+    end
+    
+    MoveLoop = task.spawn(function()
+        while getgenv().MoveAround do
+            local player = game.Players.LocalPlayer
+            if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+                player.CharacterAdded:Wait()
+                task.wait(1)
+            end
+            
+            UpdateActiveBossLocations()
+            if #ActiveBossLocations == 0 then
+                task.wait(1)
+                continue
+            end
+
+            local candidateBosses = {}
+            for _, boss in pairs(ActiveBossLocations) do
+                if not VisitedBosses[boss.Name] then
+                    table.insert(candidateBosses, boss)
+                end
+            end
+
+            if #candidateBosses == 0 then
+                VisitedBosses = {} -- Reset lại khi đi hết boss
+                candidateBosses = ActiveBossLocations
+            end
+
+            table.sort(candidateBosses, function(a, b)
+                return GetDistance(a.Position) < GetDistance(b.Position)
+            end)
+
+            local boss = candidateBosses[1]
+            if not boss then
+                task.wait(1)
+                continue
+            end
+
+            local bossCFrame = CFrame.new(boss.Position)
+            local TweenFa = Tween(bossCFrame)
+
+            repeat
+                task.wait()
+                if not game.Players.LocalPlayer.Character then
+                    if TweenFa then
+                        TweenFa:Cancel()
+                        TweenFa = nil
+                    end
+                    break
+                end
+            until not getgenv().MoveAround or GetDistance(bossCFrame) < 20
+
+            if not getgenv().MoveAround then break end
+            if TweenFa then
+                TweenFa:Cancel()
+                TweenFa = nil
+            end
+
+            VisitedBosses[boss.Name] = true
+            task.wait(1) -- Dừng 1 giây trước khi đi tiếp boss khác
+        end
+    end)
+end
+
+game:GetService("RunService").Heartbeat:Connect(function()
+    if getgenv().MoveAround and not MoveLoop then
+        startMoveLoop()
+    elseif not getgenv().MoveAround and MoveLoop then
+        task.cancel(MoveLoop)
+        MoveLoop = nil
+    end
+end)
+
 
 --// Update Labels / Dropdowns \\--
 spawn(function()

@@ -1705,7 +1705,6 @@ local MoveLoop = nil
 local VisitedBosses = {}
 
 local function startMoveLoop()
-    local FarmSpeed = 300
     if MoveLoop then
         MoveLoop:Disconnect()
     end
@@ -1747,7 +1746,7 @@ local function startMoveLoop()
             end
 
             local bossCFrame = CFrame.new(boss.Position)
-            local TweenFa = Tween(bossCFrame, {Speed = FarmSpeed})
+            local TweenFa = Tween(bossCFrame)
 
             repeat
                 task.wait()

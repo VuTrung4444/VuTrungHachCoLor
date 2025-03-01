@@ -1501,11 +1501,11 @@ spawn(function()
 end)
 
 
---// No Clip \\--
+--// NoClip \\--
 local antifallActive = false 
 spawn(function()
     game:GetService("RunService").Stepped:Connect(function()
-        if getgenv().Farm or getgenv().MoveAround or AutoCollectLilys = true then
+        if getgenv().Farm or getgenv().MoveAround or AutoCollectLilys == true then
             for _, v in pairs(game:GetService("Players").LocalPlayer.Character:GetDescendants()) do
                 if v:IsA("BasePart") then
                     v.CanCollide = false    

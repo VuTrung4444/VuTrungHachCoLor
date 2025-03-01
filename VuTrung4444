@@ -1665,6 +1665,7 @@ local function startFarmLoop()
             end
 
             VisitedBosses[boss.Name] = true
+	UpdateActiveBossLocations()
         end
     end)
 end
@@ -1751,6 +1752,7 @@ local function startMoveLoop()
             end
 
             VisitedBosses[boss.Name] = true
+	UpdateActiveBossLocations()
             task.wait(1) -- Dừng 1 giây trước khi đi tiếp boss khác
         end
     end)

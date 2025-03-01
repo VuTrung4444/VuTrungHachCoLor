@@ -1865,7 +1865,7 @@ local function tryCollectFlower(flower)
             for _ = 1, 3 do
                 if not flower.Parent then return true end
                 fireproximityprompt(descendant)
-                task.wait(0.5)
+                task.wait(1)
                 if not flower.Parent then return true end
             end
         end

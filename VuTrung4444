@@ -1785,10 +1785,13 @@ end)
 
 ---Nhặt Hoa---
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local flowers = game:GetService("Workspace"):WaitForChild("Demon_Flowers_Spawn")
 local Player = game.Players.LocalPlayer
 
-local AutoCollectLilys = false
+getgenv().AutoCollectLilys = false
+getgenv().speed = 250
+getgenv().delay = 0.25
 
 local failedFlowers = {}
 local collectingThread = nil
@@ -1798,37 +1801,54 @@ local function isCharacterValid()
     return character and character.Parent and character:FindFirstChild("HumanoidRootPart")
 end
 
-local function fireproximityprompt(ProximityPrompt)
-    ProximityPrompt.HoldDuration = 0
-    ProximityPrompt:InputHoldBegin()
-    task.wait(0.5)
-    ProximityPrompt:InputHoldEnd()
+local function fireProximityPrompt(ProximityPrompt, Amount, Skip)
+    assert(ProximityPrompt and ProximityPrompt:IsA("ProximityPrompt"), "Invalid ProximityPrompt")
+    local holdDuration = ProximityPrompt.HoldDuration
+    if Skip then
+        ProximityPrompt.HoldDuration = 0
+    end
+    for _ = 1, Amount or 1 do
+        ProximityPrompt:InputHoldBegin()
+        if Skip then
+            local start = tick()
+            repeat task.wait(0.1) until tick() - start > holdDuration
+        end
+        ProximityPrompt:InputHoldEnd()
+    end
+    ProximityPrompt.HoldDuration = holdDuration
 end
 
-local function TweenToPosition(targetPos, speed)
+local function improvedTeleport(targetPos)
     local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return nil, 0 end
+    if not root then return end
 
-    local distance = (root.Position - targetPos).Magnitude
-    local duration = distance / speed
+    local startPos = root.Position
+    local delta = (targetPos - startPos)
+    local startTime = tick()
+    local duration = delta.Magnitude / speed
 
-    local tween = TweenService:Create(root, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPos)})
-    tween:Play()
-    return tween, duration
+    repeat
+        RunService.Heartbeat:Wait()
+        local progress = math.min((tick() - startTime) / duration, 1)
+        local mappedPos = startPos + (delta * progress)
+        root.Velocity = Vector3.zero
+        root.CFrame = CFrame.new(mappedPos)
+    until (root.Position - targetPos).Magnitude <= speed / 2
+
+    root.Anchored = false
+    root.CFrame = CFrame.new(targetPos)
 end
 
 local function getNearestFlower()
     local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
     if not root then return nil end
 
-    local nearestFlower = nil
-    local nearestDist = math.huge
-
+    local nearestFlower, nearestDist = nil, math.huge
     for _, flower in pairs(flowers:GetChildren()) do
         if flower:IsA("Model") and (not failedFlowers[flower] or tick() - failedFlowers[flower] > 30) then
-            local distance = (root.Position - flower.WorldPivot.Position).Magnitude
-            if distance < nearestDist then
-                nearestDist = distance
+            local dist = (root.Position - flower.WorldPivot.Position).Magnitude
+            if dist < nearestDist then
+                nearestDist = dist
                 nearestFlower = flower
             end
         end
@@ -1837,37 +1857,29 @@ local function getNearestFlower()
     return nearestFlower
 end
 
-local function safeMoveToFlower(flower)
+local function safeTeleportToFlower(flower)
     if not flower or not flower.Parent then return false end
 
-    local offset = Vector3.new(0, -2, 0)
-    local tween, duration = TweenToPosition(flower.WorldPivot.Position + offset, 250)
-
-    local start = tick()
-    while tick() - start < duration + 1 do
-        task.wait()
-        if not isCharacterValid() then
-            tween:Cancel()
-            return false
-        end
-        if tween.PlaybackState ~= Enum.PlaybackState.Playing then
-            break
-        end
+    local targetPos = flower.WorldPivot.Position + Vector3.new(0, -2, 0)
+    if targetPos.Magnitude < 1 or not math.isfinite(targetPos.Magnitude) then
+        warn("Tọa độ hoa không hợp lệ, bỏ qua.")
+        return false
     end
 
-    tween:Cancel()
+    improvedTeleport(targetPos)
+    task.wait(delay)
+
     return isCharacterValid()
 end
 
-local function tryCollectFlower(flower)
+local function collectFlower(flower)
     if not flower or not flower.Parent then return true end
 
     for _, descendant in ipairs(flower:GetDescendants()) do
         if descendant:IsA("ProximityPrompt") then
-		task.wait(0.5)
             for _ = 1, 3 do
                 if not flower.Parent then return true end
-                fireproximityprompt(descendant)
+                fireProximityPrompt(descendant, 1, true)
                 task.wait(0.5)
                 if not flower.Parent then return true end
             end
@@ -1889,7 +1901,6 @@ local function startCollecting()
     if collectingThread then return end
 
     AutoCollectLilys = true
-
     collectingThread = task.spawn(function()
         while AutoCollectLilys do
             if not isCharacterValid() then
@@ -1903,15 +1914,15 @@ local function startCollecting()
             end
 
             local flower = getNearestFlower()
-            if not flower then
-                task.wait(2)
-                continue
-            end
-
-            if safeMoveToFlower(flower) and tryCollectFlower(flower) then
-                failedFlowers[flower] = nil
+            if flower then
+                if safeTeleportToFlower(flower) and collectFlower(flower) then
+                    failedFlowers[flower] = nil
+                else
+                    failedFlowers[flower] = tick()
+                end
             else
-                failedFlowers[flower] = tick()
+                print("Không tìm thấy hoa khả dụng - nghỉ 2 giây.")
+                task.wait(2)
             end
 
             task.wait(0.5)
@@ -1929,17 +1940,17 @@ local function stopCollecting()
     end
 end
 
-local function CharacterAdded(character)
+local function characterAdded(character)
     character:WaitForChild("HumanoidRootPart")
 end
 
-Player.CharacterAdded:Connect(CharacterAdded)
+Player.CharacterAdded:Connect(characterAdded)
 
 if Player.Character then
-    CharacterAdded(Player.Character)
+    characterAdded(Player.Character)
 end
 
-
+-- UI Toggle Section
 MiscSection:AddToggle({
     Name = "Auto Collect Lilys",
     Flag = "CollectAllLilys",

@@ -1797,11 +1797,6 @@ local function isCharacterValid()
     return character and character.Parent and character:FindFirstChild("HumanoidRootPart")
 end
 
-local function getRoot()
-    local character = Player.Character
-    return character and character:FindFirstChild("HumanoidRootPart")
-end
-
 local function fireproximityprompt(ProximityPrompt)
     ProximityPrompt.HoldDuration = 0
     ProximityPrompt:InputHoldBegin()
@@ -1809,36 +1804,20 @@ local function fireproximityprompt(ProximityPrompt)
     ProximityPrompt:InputHoldEnd()
 end
 
--- Tối ưu SafeTeleport: Bay cao trước khi hạ cánh để tránh kẹt và bay map
-local function safeTeleportToFlower(flower)
-    local root = getRoot()
-    if not root or not flower or not flower.Parent then return false end
+local function TweenToPosition(targetPos, speed)
+    local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil, 0 end
 
-    local targetPos = flower.WorldPivot.Position + Vector3.new(0, -2, 0)
-    local hoverPos = targetPos + Vector3.new(0, 10, 0)
+    local distance = (root.Position - targetPos).Magnitude
+    local duration = distance / speed
 
-    -- Bay lên cao trước
-    root.CFrame = CFrame.new(hoverPos)
-    task.wait(0.2)
-
-    -- Đáp xuống bên trên hoa
-    root.CFrame = CFrame.new(targetPos)
-
-    -- Reset mọi vận tốc để tránh bug bay
-    root.Velocity = Vector3.zero
-    root.AssemblyLinearVelocity = Vector3.zero
-    root.AssemblyAngularVelocity = Vector3.zero
-
-    -- Kiểm tra character sau khi đáp
-    if not isCharacterValid() then
-        return false
-    end
-
-    return true
+    local tween = TweenService:Create(root, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPos)})
+    tween:Play()
+    return tween, duration
 end
 
 local function getNearestFlower()
-    local root = getRoot()
+    local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
     if not root then return nil end
 
     local nearestFlower = nil
@@ -1855,6 +1834,41 @@ local function getNearestFlower()
     end
 
     return nearestFlower
+end
+
+-- NEW: Di chuyển đến cao hơn hoa 5 studs, sau đó mới hạ xuống
+local function safeMoveToFlower(flower)
+    if not flower or not flower.Parent then return false end
+
+    local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return false end
+
+    local targetPos = flower.WorldPivot.Position + Vector3.new(0, -2, 0)  -- Vị trí thu hoa
+    local hoverPos = targetPos + Vector3.new(0, 5, 0)  -- Hover trước khi hạ cánh
+
+    -- Tween bay lên trước (nếu dưới vị trí hover)
+    if root.Position.Y < hoverPos.Y then
+        local tweenUp, upDuration = TweenToPosition(hoverPos, 300)
+        task.wait(upDuration + 0.2)
+    end
+
+    -- Tween hạ cánh xuống hoa
+    local tween, duration = TweenToPosition(targetPos, 250)
+
+    local start = tick()
+    while tick() - start < duration + 1 do
+        task.wait()
+        if not isCharacterValid() then
+            tween:Cancel()
+            return false
+        end
+        if tween.PlaybackState ~= Enum.PlaybackState.Playing then
+            break
+        end
+    end
+
+    tween:Cancel()
+    return isCharacterValid()
 end
 
 local function tryCollectFlower(flower)
@@ -1906,7 +1920,7 @@ local function startCollecting()
                 continue
             end
 
-            if safeTeleportToFlower(flower) and tryCollectFlower(flower) then
+            if safeMoveToFlower(flower) and tryCollectFlower(flower) then
                 failedFlowers[flower] = nil
             else
                 failedFlowers[flower] = tick()

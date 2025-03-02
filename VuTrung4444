@@ -1784,15 +1784,13 @@ spawn(function()
 end)
 
 ---Nhặt Hoa---
-getgenv().TP = false
-getgenv().speed = 250
-getgenv().delay = 0.25 -- Tăng nếu bị kẹt hoa
-
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local Player = Players.LocalPlayer
 local flowers = game:GetService("Workspace"):WaitForChild("Demon_Flowers_Spawn")
+local Player = game.Players.LocalPlayer
+
+local AutoCollectLilys = false
+local failedFlowers = {}
+local collectingThread = nil
 
 local function isCharacterValid()
     local character = Player.Character
@@ -1800,82 +1798,77 @@ local function isCharacterValid()
 end
 
 local function getRoot()
-    return Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    local character = Player.Character
+    return character and character:FindFirstChild("HumanoidRootPart")
 end
 
-local function fireproximityprompt(ProximityPrompt, Amount, Skip)
-    if not ProximityPrompt or not ProximityPrompt:IsA("ProximityPrompt") then return end
-    local HoldDuration = ProximityPrompt.HoldDuration
-    if Skip then
-        ProximityPrompt.HoldDuration = 0
-    end
-    for _ = 1, Amount or 1 do
-        ProximityPrompt:InputHoldBegin()
-        task.wait(HoldDuration)
-        ProximityPrompt:InputHoldEnd()
-    end
-    ProximityPrompt.HoldDuration = HoldDuration
+local function fireproximityprompt(ProximityPrompt)
+    ProximityPrompt.HoldDuration = 0
+    ProximityPrompt:InputHoldBegin()
+    task.wait(0.5)
+    ProximityPrompt:InputHoldEnd()
 end
 
-local function improvedTeleport(targetPos)
+-- Tối ưu SafeTeleport: Bay cao trước khi hạ cánh để tránh kẹt và bay map
+local function safeTeleportToFlower(flower)
     local root = getRoot()
-    if not root then return end
+    if not root or not flower or not flower.Parent then return false end
 
-    local start = root.Position
-    local delta = targetPos - start
-    local startTime = tick()
-    local duration = delta.Magnitude / speed
+    local targetPos = flower.WorldPivot.Position + Vector3.new(0, -2, 0)
+    local hoverPos = targetPos + Vector3.new(0, 10, 0)
 
-    while (tick() - startTime) <= duration do
-        task.wait()
-        if not isCharacterValid() then return end
+    -- Bay lên cao trước
+    root.CFrame = CFrame.new(hoverPos)
+    task.wait(0.2)
 
-        local progress = math.min((tick() - startTime) / duration, 1)
-        root.CFrame = CFrame.new(start + delta * progress)
+    -- Đáp xuống bên trên hoa
+    root.CFrame = CFrame.new(targetPos)
+
+    -- Reset mọi vận tốc để tránh bug bay
+    root.Velocity = Vector3.zero
+    root.AssemblyLinearVelocity = Vector3.zero
+    root.AssemblyAngularVelocity = Vector3.zero
+
+    -- Kiểm tra character sau khi đáp
+    if not isCharacterValid() then
+        return false
     end
 
-    root.CFrame = CFrame.new(targetPos)
+    return true
 end
 
 local function getNearestFlower()
     local root = getRoot()
-    if not root then return end
+    if not root then return nil end
 
-    local nearest, nearestDist = nil, math.huge
-    for _, flower in ipairs(flowers:GetChildren()) do
-        if flower:IsA("Model") then
-            local dist = (root.Position - flower.WorldPivot.Position).Magnitude
-            if dist < nearestDist then
-                nearestDist = dist
-                nearest = flower
+    local nearestFlower = nil
+    local nearestDist = math.huge
+
+    for _, flower in pairs(flowers:GetChildren()) do
+        if flower:IsA("Model") and (not failedFlowers[flower] or tick() - failedFlowers[flower] > 30) then
+            local distance = (root.Position - flower.WorldPivot.Position).Magnitude
+            if distance < nearestDist then
+                nearestDist = distance
+                nearestFlower = flower
             end
         end
     end
-    return nearest
-end
 
-local function safeTeleportToFlower(flower)
-    if not flower or not flower.Parent then return false end
-
-    local targetPos = flower.WorldPivot.Position + Vector3.new(0, -2, 0)
-
-    if not targetPos or tostring(targetPos):find("nan") then
-        warn("⚠️ Tọa độ hoa lỗi - bỏ qua.")
-        return false
-    end
-
-    improvedTeleport(targetPos)
-    task.wait(delay)
-
-    return isCharacterValid()
+    return nearestFlower
 end
 
 local function tryCollectFlower(flower)
     if not flower or not flower.Parent then return true end
 
-    for _, v in ipairs(flower:GetDescendants()) do
-        if v:IsA("ProximityPrompt") then
-            fireproximityprompt(v, 1, true)
+    for _, descendant in ipairs(flower:GetDescendants()) do
+        if descendant:IsA("ProximityPrompt") then
+            task.wait(0.5)
+            for _ = 1, 3 do
+                if not flower.Parent then return true end
+                fireproximityprompt(descendant)
+                task.wait(0.5)
+                if not flower.Parent then return true end
+            end
         end
     end
 
@@ -1890,9 +1883,6 @@ local function tryCollectFlower(flower)
     return false
 end
 
-local AutoCollectLilys = false
-local collectingThread = nil
-
 local function startCollecting()
     if collectingThread then return end
 
@@ -1904,6 +1894,12 @@ local function startCollecting()
                 repeat task.wait(1) until isCharacterValid()
             end
 
+            for flower, lastFail in pairs(failedFlowers) do
+                if not flower.Parent or tick() - lastFail > 30 then
+                    failedFlowers[flower] = nil
+                end
+            end
+
             local flower = getNearestFlower()
             if not flower then
                 task.wait(2)
@@ -1911,13 +1907,14 @@ local function startCollecting()
             end
 
             if safeTeleportToFlower(flower) and tryCollectFlower(flower) then
-                print("🌸 Thu thập thành công: " .. flower.Name)
+                failedFlowers[flower] = nil
             else
-                print("❌ Thu thập thất bại: " .. flower.Name)
+                failedFlowers[flower] = tick()
             end
 
             task.wait(0.5)
         end
+
         collectingThread = nil
     end)
 end
@@ -1940,12 +1937,12 @@ if Player.Character then
     CharacterAdded(Player.Character)
 end
 
--- Ở đây bạn gắn vào giao diện toggle hoặc menu tùy framework bạn dùng
 MiscSection:AddToggle({
     Name = "Auto Collect Lilys",
     Flag = "CollectAllLilys",
     Keybind = false,
     Callback = function(v)
+        AutoCollectLilys = v
         if v then
             startCollecting()
         else

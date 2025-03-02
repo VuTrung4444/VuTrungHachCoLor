@@ -1775,11 +1775,23 @@ spawn(function()
     end
 end)
 
+local VirtualUser = game:GetService("VirtualUser")
+local Players = game:GetService("Players")
+
+-- Hàm tạo thời gian random kiểu tự nhiên, có lúc nhanh lúc chậm
+local function naturalWaitTime()
+    local baseTime = 600 -- 10 phút
+    local offset = math.random(-120, 180) -- lệch ngẫu nhiên từ -2 phút đến +3 phút
+    return math.max(300, baseTime + offset) -- đảm bảo tối thiểu 5 phút
+end
+
 spawn(function()
     while true do
-        wait(600) -- Chờ 10 phút (600 giây)
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new()) -- Giả lập nhấp chuột phải để reset AFK
+        wait(naturalWaitTime()) 
+        if Players.LocalPlayer and Players.LocalPlayer.Character then
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new(math.random(100, 1820), math.random(100, 980))) 
+        end
     end
 end)
 

@@ -1789,8 +1789,11 @@ local flowers = game:GetService("Workspace"):WaitForChild("Demon_Flowers_Spawn")
 local Player = game.Players.LocalPlayer
 
 local AutoCollectLilys = false
+
 local failedFlowers = {}
 local collectingThread = nil
+
+local HOVER_HEIGHT = 5  -- Độ cao hover trên hoa, có thể điều chỉnh
 
 local function isCharacterValid()
     local character = Player.Character
@@ -1808,10 +1811,11 @@ local function TweenToPosition(targetPos, speed)
     local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
     if not root then return nil, 0 end
 
-    local distance = (root.Position - targetPos).Magnitude
+    local hoverPos = targetPos + Vector3.new(0, HOVER_HEIGHT, 0)  -- Bay trên hoa
+    local distance = (root.Position - hoverPos).Magnitude
     local duration = distance / speed
 
-    local tween = TweenService:Create(root, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPos)})
+    local tween = TweenService:Create(root, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(hoverPos)})
     tween:Play()
     return tween, duration
 end
@@ -1836,29 +1840,19 @@ local function getNearestFlower()
     return nearestFlower
 end
 
--- NEW: Di chuyển đến cao hơn hoa 5 studs, sau đó mới hạ xuống
 local function safeMoveToFlower(flower)
     if not flower or not flower.Parent then return false end
 
-    local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return false end
-
-    local targetPos = flower.WorldPivot.Position + Vector3.new(0, -2, 0)  -- Vị trí thu hoa
-    local hoverPos = targetPos + Vector3.new(0, 5, 0)  -- Hover trước khi hạ cánh
-
-    -- Tween bay lên trước (nếu dưới vị trí hover)
-    if root.Position.Y < hoverPos.Y then
-        local tweenUp, upDuration = TweenToPosition(hoverPos, 300)
-        task.wait(upDuration + 0.2)
-    end
-
-    -- Tween hạ cánh xuống hoa
-    local tween, duration = TweenToPosition(targetPos, 250)
+    local tween, duration = TweenToPosition(flower.WorldPivot.Position, 250)
 
     local start = tick()
     while tick() - start < duration + 1 do
         task.wait()
         if not isCharacterValid() then
+            tween:Cancel()
+            return false
+        end
+        if not flower.Parent then  -- Hoa biến mất khi đang bay tới
             tween:Cancel()
             return false
         end
@@ -1876,7 +1870,7 @@ local function tryCollectFlower(flower)
 
     for _, descendant in ipairs(flower:GetDescendants()) do
         if descendant:IsA("ProximityPrompt") then
-            task.wait(0.5)
+            task.wait(0.75)
             for _ = 1, 3 do
                 if not flower.Parent then return true end
                 fireproximityprompt(descendant)

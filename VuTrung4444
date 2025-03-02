@@ -1793,7 +1793,7 @@ local AutoCollectLilys = false
 local failedFlowers = {}
 local collectingThread = nil
 
-local HOVER_HEIGHT = 5  -- Độ cao hover trên hoa, có thể điều chỉnh
+local HOVER_HEIGHT = 10  -- Độ cao hover trên hoa, có thể điều chỉnh
 
 local function isCharacterValid()
     local character = Player.Character

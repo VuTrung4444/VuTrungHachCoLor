@@ -1861,8 +1861,9 @@ local function safeTeleportToFlower(flower)
     if not flower or not flower.Parent then return false end
 
     local targetPos = flower.WorldPivot.Position + Vector3.new(0, -2, 0)
-    if targetPos.Magnitude < 1 or not math.isfinite(targetPos.Magnitude) then
-        warn("Tọa độ hoa không hợp lệ, bỏ qua.")
+
+    -- Phòng trường hợp vị trí hoa bị lỗi (NaN hoặc cực trị bất thường)
+    if targetPos.Magnitude < 1 or tostring(targetPos):find("nan") then
         return false
     end
 
@@ -1871,6 +1872,7 @@ local function safeTeleportToFlower(flower)
 
     return isCharacterValid()
 end
+
 
 local function collectFlower(flower)
     if not flower or not flower.Parent then return true end

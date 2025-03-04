@@ -838,75 +838,50 @@ local UIS = game:GetService("UserInputService")
 local godModeToggle = GodModeQuick:AddToggle({
     Name = "Enable God Mode",
     Flag = "ENG_Toggle",
+    keybind = "E",  -- Cập nhật cho vui dù thư viện không auto nhận keybind này
     Callback = function(v)
         godModeState = v
         ENG = v
     end
 })
 
-local function toggleGodMode(state)
+-- Thêm hàm SetState để toggle tự đổi màu + sync
+function godModeToggle:SetState(state)
     godModeState = state
     ENG = state
 
-    -- Cập nhật giao diện của toggle
-    if godModeToggle.Callback then
-        task.spawn(function()
-            godModeToggle.Callback(state)
-            print("test")
-        end)
+    if self.Object and self.Object.ToggleFrame then
+        self.Object.ToggleFrame.BackgroundColor3 = state and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+    end
+
+    if self.Callback then
+        self.Callback(state)
     end
 end
 
-local godModeButton = GodModeQuick:AddButton({
-    Name = "Enable God Mode",
-    Callback = function()
-        toggleGodMode(not godModeState) -- Đảo trạng thái bật/tắt
-    end
-})
-
--- Đợi một chút để đảm bảo UI được tạo xong rồi mới can thiệp vào size
-task.wait(0.1)
-if godModeButton and godModeButton.Object then
-    godModeButton.Object.Size = UDim2.new(0, 250, 0, 60)  -- Nút to ngang 250px, cao 60px
-    godModeButton.Object.TextSize = 20  -- Chữ to hơn dễ đọc
-end
-
--- Xử lý phím tắt E để bật/tắt God Mode
+-- Bắt phím E để bật/tắt toggle trực tiếp
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == Enum.KeyCode.E then
-        toggleGodMode(not godModeState)
+        godModeToggle:SetState(not godModeState)
     end
 end)
 
-for _, godMode in ipairs(GodModes) do
-    local toggle = GodModeQuick:AddToggle({
-        Name = godMode,
-        Flag = "Gm_" .. godMode,
-        Callback = function(state)
-            if state then
-                -- Tắt toggle trước đó nếu có và khác với toggle hiện tại
-                if activeToggle and activeToggle ~= toggle then
-                    activeToggle:SetState(false)
-                end
-                -- Cập nhật toggle hiện tại và thiết lập GodSelected
-                activeToggle = toggle
-                getgenv().GodSelected = godMode
-                print("God Mode Selected: " .. godMode)
-            else
-                -- Chỉ clear nếu chính toggle hiện tại bị tắt
-                if activeToggle == toggle then
-                    activeToggle = nil
-                    getgenv().GodSelected = nil
-                    print("God Mode Deselected")
-                end
-            end
-        end
-    })
+-- Thêm nút button (vẫn để phòng anh thích bấm bằng chuột)
+local godModeButton = GodModeQuick:AddButton({
+    Name = "Enable God Mode",
+    Callback = function()
+        godModeToggle:SetState(not godModeState)
+    end
+})
 
-    -- Lưu trữ toggle để có thể kiểm soát sau này nếu cần
-    toggles[godMode] = toggle
+-- Phóng to button gấp đôi
+task.wait(0.1)
+if godModeButton and godModeButton.Object then
+    godModeButton.Object.Size = UDim2.new(0, 500, 0, 120) -- To gấp đôi như yêu cầu
+    godModeButton.Object.TextSize = 24  -- Cho chữ to thêm xíu, nhìn oai hơn
 end
 
+-- Nếu muốn thêm hiệu ứng gì khi bật God Mode, ví dụ text bay, tiếng cười, hiệu ứng ánh sáng, cứ hú em nha!
 
 
 MiscSection:AddToggle({

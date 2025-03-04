@@ -833,9 +833,12 @@ SpeedAndJump:AddSlider({
 })
 
 --GodModeState--
+local UIS = game:GetService("UserInputService")
+
 local godModeToggle = GodModeQuick:AddToggle({
     Name = "Enable God Mode",
     Flag = "ENG_Toggle",
+    keybind = "F",  -- Cái này vẫn để làm màu thôi, không có tác dụng thật
     Callback = function(v)
         godModeState = v
         ENG = v
@@ -850,22 +853,36 @@ local function toggleGodMode(state)
     if godModeToggle.Callback then
         task.spawn(function()
             godModeToggle.Callback(state)
-			print("test")
+            print("test")
         end)
     end
 end
 
-GodModeQuick:AddButton({
+local godModeButton = GodModeQuick:AddButton({
     Name = "Enable God Mode",
     Callback = function()
         toggleGodMode(not godModeState) -- Đảo trạng thái bật/tắt
     end
 })
 
+-- Đợi một chút để đảm bảo UI được tạo xong rồi mới can thiệp vào size
+task.wait(0.1)
+if godModeButton and godModeButton.Object then
+    godModeButton.Object.Size = UDim2.new(0, 250, 0, 60)  -- Nút to ngang 250px, cao 60px
+    godModeButton.Object.TextSize = 20  -- Chữ to hơn dễ đọc
+end
+
+-- Xử lý phím tắt F để bật/tắt God Mode
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.F then
+        toggleGodMode(not godModeState)
+    end
+end)
+
 for _, godMode in ipairs(GodModes) do
     local toggle = GodModeQuick:AddToggle({
         Name = godMode,
-        Flag = "Gm_" .. godMode, -- Thêm Flag để quản lý dễ dàng hơn nếu cần
+        Flag = "Gm_" .. godMode,
         Callback = function(state)
             if state then
                 -- Tắt toggle trước đó nếu có và khác với toggle hiện tại
@@ -890,6 +907,7 @@ for _, godMode in ipairs(GodModes) do
     -- Lưu trữ toggle để có thể kiểm soát sau này nếu cần
     toggles[godMode] = toggle
 end
+
 
 
 MiscSection:AddToggle({

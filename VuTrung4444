@@ -838,7 +838,6 @@ local UIS = game:GetService("UserInputService")
 local godModeToggle = GodModeQuick:AddToggle({
     Name = "Enable God Mode",
     Flag = "ENG_Toggle",
-    keybind = "F",  -- Cái này vẫn để làm màu thôi, không có tác dụng thật
     Callback = function(v)
         godModeState = v
         ENG = v
@@ -872,7 +871,7 @@ if godModeButton and godModeButton.Object then
     godModeButton.Object.TextSize = 20  -- Chữ to hơn dễ đọc
 end
 
--- Xử lý phím tắt F để bật/tắt God Mode
+-- Xử lý phím tắt E để bật/tắt God Mode
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == Enum.KeyCode.E then
         toggleGodMode(not godModeState)

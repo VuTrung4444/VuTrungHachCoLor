@@ -1,6 +1,6 @@
 repeat task.wait() until game:IsLoaded()
 
--- Giả sử UI lib của chồng đã load sẵn vào biến Library
+
 local Library = loadstring(game:GetObjects("rbxassetid://7657867786")[1].Source)()
 local Subs = Library.subs
 local IsOpen = Subs.Wait
@@ -15,14 +15,14 @@ local MainWindow = Library:CreateWindow({
     }
 })
 
--- Tạo tab và section Daily
+
 local DailyTab = MainWindow:CreateTab("Main")
 local DailySection = DailyTab:CreateSection({Name = "Spin", Side = "Left"})
 
--- Biến kiểm soát
+
 local DailySpinEnabled = false
 
--- Hàm quay và nhận thưởng
+
 local function autoSpinAndClaim()
     task.spawn(function()
         while DailySpinEnabled do
@@ -37,7 +37,7 @@ local function autoSpinAndClaim()
                     if spinResult and spinResult.rewardchosen then
                     end
                 else
-                    DailySpinEnabled = false  -- Tắt luôn toggle
+                    DailySpinEnabled = false 
                 end
 
             end
@@ -47,7 +47,7 @@ local function autoSpinAndClaim()
     end)
 end
 
--- Thêm toggle vào menu
+
 DailySection:AddToggle({
     Name = "Auto Daily Spin",
     Flag = "AutoDailySpin",

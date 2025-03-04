@@ -2138,3 +2138,57 @@ MiscSection:AddToggle({
         end
     end
 })
+
+--FindMuzan--
+local teleportToMuzanEnabled = false
+local function teleportToMuzan()
+    task.spawn(function()
+        while teleportToMuzanEnabled do
+            local lighting = game:GetService("Lighting")
+            local players = game:GetService("Players")
+            local localPlayer = players.LocalPlayer
+            local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+            local hrp = character:WaitForChild("HumanoidRootPart")
+
+            local function findMuzan()
+                for _, v in ipairs(workspace:GetDescendants()) do
+                    if v:IsA("Model") and v.Name:lower():find("muzan") then
+                        return v
+                    end
+                end
+                return nil
+            end
+
+            if lighting.ClockTime >= 18 or lighting.ClockTime <= 6 then
+                local muzan = findMuzan()
+                if muzan then
+                    local muzanPos = muzan:GetPivot().Position
+                    
+                    local offset = Vector3.new(10, 5, 0)
+                    local targetPos = muzanPos + offset
+                    
+                    hrp.CFrame = CFrame.new(targetPos)
+                    
+                    teleportToMuzanEnabled = false  -- Tự tắt sau khi dịch chuyển xong
+                else
+                    print("🌌 Trời tối nhưng chưa thấy Muzan đâu...")
+                end
+            else
+                print("☀️ Trời sáng, chờ tối mới đi săn Muzan!")
+            end
+
+            task.wait(2)  -- Check mỗi 2 giây
+        end
+    end)
+end
+
+MiscSection:AddToggle({
+    Name = "Auto Teleport to Muzan",
+    Flag = "AutoTPMuzan",
+    Callback = function(state)
+        teleportToMuzanEnabled = state
+        if state then
+            teleportToMuzan()
+        end
+    end
+})

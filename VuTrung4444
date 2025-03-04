@@ -922,6 +922,24 @@ MiscSection:AddToggle({
     end 
 })
 
+--Med and Split--
+local medToggle = MiscSection:AddToggle({
+    Name = "Auto Meditate",
+    Flag = "AutoMed_Toggle",
+    Callback = function(state)
+        AutoMed(state)
+    end
+})
+
+local splitToggle = MiscSection:AddToggle({
+    Name = "Auto Boulder Split",
+    Flag = "AutoSplit_Toggle",
+    Callback = function(state)
+        AutoSplit(state)
+    end
+})
+
+
 MiscSection:AddToggle({
     Name = "Kamado God Mode [Kamado]",
     Flag = "KamadoGod",
@@ -1232,24 +1250,6 @@ MiscSection:AddToggle({
         end
     end
 })
-
---Med and Split--
-local medToggle = MiscSection:AddToggle({
-    Name = "Auto Meditate",
-    Flag = "AutoMed_Toggle",
-    Callback = function(state)
-        AutoMed(state)
-    end
-})
-
-local splitToggle = MiscSection:AddToggle({
-    Name = "Auto Boulder Split",
-    Flag = "AutoSplit_Toggle",
-    Callback = function(state)
-        AutoSplit(state)
-    end
-})
-
 
 --// Inf iFrames \\--
 spawn(function()

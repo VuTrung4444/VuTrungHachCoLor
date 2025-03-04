@@ -1,9 +1,70 @@
 repeat task.wait() until game:IsLoaded()
+
+-- Giả sử UI lib của chồng đã load sẵn vào biến Library
+local Library = loadstring(game:GetObjects("rbxassetid://7657867786")[1].Source)()
+local Subs = Library.subs
+local IsOpen = Subs.Wait
+
+local MainWindow = Library:CreateWindow({
+    Name = "HackerLor | TksMyWife",
+    Themeable = {
+        Info = "VTrungHackerLor",
+        Credit = false,
+        Background = "",
+        Visible = true
+    }
+})
+
+-- Tạo tab và section Daily
+local DailyTab = MainWindow:CreateTab("Main")
+local DailySection = DailyTab:CreateSection({Name = "Spin", Side = "Left"})
+
+-- Biến kiểm soát
+local DailySpinEnabled = false
+
+-- Hàm quay và nhận thưởng
+local function autoSpinAndClaim()
+    task.spawn(function()
+        while DailySpinEnabled do
+            local player = game.Players.LocalPlayer
+            local spinsFolder = player:FindFirstChild("daily_spins_folder")
+            local remote = game.ReplicatedStorage:FindFirstChild("spins_thing_remote")
+
+            if spinsFolder and remote then
+                local dailySpins = spinsFolder:FindFirstChild("SpinsToday")
+                if dailySpins and dailySpins.Value > 0 then
+                    local spinResult = remote:InvokeServer()
+                    if spinResult and spinResult.rewardchosen then
+                    end
+                else
+                    DailySpinEnabled = false  -- Tắt luôn toggle
+                end
+
+            end
+
+            task.wait(0.1)
+        end
+    end)
+end
+
+-- Thêm toggle vào menu
+DailySection:AddToggle({
+    Name = "Auto Daily Spin",
+    Flag = "AutoDailySpin",
+    Callback = function(state)
+        DailySpinEnabled = state
+        if state then
+            autoSpinAndClaim()
+        end
+    end
+})
+
+
 --// Variables \\--
 local plr = game:GetService("Players").LocalPlayer
 
 local function updateCharacterReferences(character)
-	local hrp = character:FindFirstChild("HumanoidRootPart")
+	local hrp = character:WaitForChild("HumanoidRootPart")
 		_G.Character = character
 		_G.HumanoidRootPart = hrp
 end
@@ -16,17 +77,17 @@ end)
 
 local insert = table.insert 
 local character = plr.Character
-local PlrHumanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+local PlrHumanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 local plr = game.Players.LocalPlayer
 local Character = plr.Character or plr.CharacterAdded:Wait()	
-local Humanoid = Character and Character:FindFirstChild("Humanoid")
+local Humanoid = Character and Character:WaitForChild("Humanoid")
 local WalkSpeed = 150
 local JumpPower = 150
 
 plr.CharacterAdded:Connect(function(Char)
     Character = Char
-    Humanoid = Character:FindFirstChild("Humanoid")
+    Humanoid = Character:WaitForChild("Humanoid")
 
     -- Cập nhật tốc độ và sức bật ngay khi nhân vật xuất hiện
     if WalkSpeed then
@@ -53,7 +114,7 @@ end)
 
 plr.CharacterAdded:Connect(function(Char)
     Character = Char
-    Humanoid = Character:FindFirstChild("Humanoid")
+    Humanoid = Character:WaitForChild("Humanoid")
 
     -- Đặt lại tốc độ ngay lập tức
     task.wait(0.1) -- Chờ game cập nhật xong
@@ -156,9 +217,9 @@ local VirtualUser = game:GetService("VirtualUser")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Remotes = ReplicatedStorage:FindFirstChild("Remotes")
-local DrumRemote = Remotes:FindFirstChild("war_Drums_remote")
-local Map = Workspace:FindFirstChild("Map")
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local DrumRemote = Remotes:WaitForChild("war_Drums_remote")
+local Map = Workspace:WaitForChild("Map")
 
 
 
@@ -501,7 +562,7 @@ local Settings = MainTab:CreateSection({Name = "Settings"})
 local KillAura = MainTab:CreateSection({Name = "Kill Aura", Side = "Right"})
 local Teleports = MainTab:CreateSection({Name = "Teleports", Side = "Right"})
 local Info = MainTab:CreateSection({Name = "Info", Side = "Right"})
-local DailyTab = MainTab:CreateSection({Name = "Daily", Side = "Left"})
+local BossesTab = MainTab:CreateSection({Name = "", Side = "Left"})
 
 
 --// Misc Tab \\--
@@ -512,9 +573,9 @@ local AutoSkills = MiscTab:CreateSection({Name = "AutoSkills", Side = "Right"})
 local SpeedAndJump = MiscTab:CreateSection({Name = "Speed&Jump", Side = "Right"})
 local Ect = MiscTab:CreateSection({Name = "Ect", Side = "Right"})
 
-local Debree = Workspace:FindFirstChild("Debree")
-local EctFolder = ReplicatedStorage:FindFirstChild("Misc")
-local Clashing = EctFolder:FindFirstChild("Clashing")
+local Debree = Workspace:WaitForChild("Debree")
+local EctFolder = ReplicatedStorage:WaitForChild("Misc")
+local Clashing = EctFolder:WaitForChild("Clashing")
 
 MainSection:AddToggle({
     Name = "Farm",
@@ -774,6 +835,16 @@ local infoLabel = Info:AddLabel("")
 Info:AddLabel("")
 Info:AddLabel("")
 
+--// Living Bosses \\--
+
+BossesTab:AddLabel("")
+BossesTab:AddLabel("")
+BossesTab:AddLabel("")
+BossLabel = BossesTab:AddLabel("")
+BossesTab:AddLabel("")
+BossesTab:AddLabel("")
+BossesTab:AddLabel("")
+
 --// Misc Section \\--
 MiscSection:AddToggle({
     Name = "Auto Collect Chest",
@@ -825,7 +896,7 @@ SpeedAndJump:AddSlider({
 local UIS = game:GetService("UserInputService")
 
 local godModeToggle = GodModeQuick:AddToggle({
-    Name = "Enable God Mode (R)",
+    Name = "Enable God Mode",
     Flag = "ENG_Toggle",
     keybind = "R", 
     Callback = function(v)
@@ -1081,45 +1152,6 @@ Ect:AddButton({
     end 
 })
 
-local player = game.Players.LocalPlayer
-local dailySpins = player:FindFirstChild("daily_spins_folder"):FindFirstChild("SpinsToday")
-local remote = game.ReplicatedStorage:FindFirstChild("spins_thing_remote")
-
--- Biến kiểm soát toggle
-local autoSpinEnabled = false
-
--- Hàm auto spin
-local function autoSpinAndClaim()
-    while autoSpinEnabled do
-        task.wait(0.1)
-        if dailySpins.Value > 0 then
-            local spinResult = remote:InvokeServer()
-            if spinResult and spinResult.rewardchosen then
-                game.StarterGui:SetCore("ChatMakeSystemMessage", {
-                    Text = "[Hệ Thống Gửi Quà]: Chồng vừa nhận được " .. tostring(spinResult.rewardchosen) .. "!",
-                    Color = Color3.fromRGB(85, 255, 127),
-                    Font = Enum.Font.SourceSansBold,
-                    FontSize = Enum.FontSize.Size24,
-                })
-            end
-        else
-            break
-        end
-    end
-end
-
-
-DailyTab:CreateToggle({
-    Name = "Auto Daily Spin",
-    Default = false,
-    Callback = function(state)
-        autoSpinEnabled = state
-        if autoSpinEnabled then
-            task.spawn(autoSpinAndClaim)
-        end
-    end
-})
-
 --// Actual Code \\--
 
 -- Hàm cập nhật danh sách địa điểm & Bosses
@@ -1263,7 +1295,7 @@ spawn(function()
                 [4] = 1
             }
             
-            game:GetService("ReplicatedStorage"):FindFirstChild("Remotes"):FindFirstChild("To_Server"):FindFirstChild("Handle_Initiate_S"):FireServer(unpack(args))
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("To_Server"):WaitForChild("Handle_Initiate_S"):FireServer(unpack(args))
             task.wait(0.30)
         end
     end
@@ -1833,7 +1865,7 @@ end)
 
 ---Nhặt Hoa---
 local TweenService = game:GetService("TweenService")
-local flowers = game:GetService("Workspace"):FindFirstChild("Demon_Flowers_Spawn")
+local flowers = game:GetService("Workspace"):WaitForChild("Demon_Flowers_Spawn")
 local Player = game.Players.LocalPlayer
 
 local AutoCollectLilys = false
@@ -1984,7 +2016,7 @@ local function stopCollecting()
 end
 
 local function CharacterAdded(character)
-    character:FindFirstChild("HumanoidRootPart")
+    character:WaitForChild("HumanoidRootPart")
 end
 
 Player.CharacterAdded:Connect(CharacterAdded)

@@ -1,27 +1,74 @@
 repeat task.wait() until game:IsLoaded()
 
-
 local Library = loadstring(game:GetObjects("rbxassetid://7657867786")[1].Source)()
 local Subs = Library.subs
 local IsOpen = Subs.Wait
 
-local MainWindow = Library:CreateWindow({
-    Name = "HackerLor | TksMyWife",
-    Themeable = {
-        Info = "VTrungHackerLor",
-        Credit = false,
-        Background = "",
-        Visible = true
-    }
-})
-
-
-local DailyTab = MainWindow:CreateTab("Main")
-local DailySection = DailyTab:CreateSection({Name = "Spin", Side = "Left"})
-
+local mainMenuPlaceID = 5956785391
 
 local DailySpinEnabled = false
+local ClanSpinEnabled = false
 
+
+local legendaryClans = {"Shinazugawa", "Kocho", "Sabito", "Tamayo", "Kuwajima", "Makamo"}
+local mythicClans = {"Tomioka", "Tokito", "Hashibira", "Soyama"}
+local supremeClans = {"Kamado", "Agatsuma", "Rengoku", "Uzui"}
+
+
+local huntLegendary = true
+local huntMythic = true
+local huntSupreme = true
+
+local function getFilteredClans()
+    local targetClans = {}
+    if huntLegendary then
+        for _, clan in ipairs(legendaryClans) do
+            table.insert(targetClans, clan)
+        end
+    end
+    if huntMythic then
+        for _, clan in ipairs(mythicClans) do
+            table.insert(targetClans, clan)
+        end
+    end
+    if huntSupreme then
+        for _, clan in ipairs(supremeClans) do
+            table.insert(targetClans, clan)
+        end
+    end
+    return targetClans
+end
+
+local function autoSpinClan()
+    task.spawn(function()
+        local players = game:GetService("Players")
+        local replicatedStorage = game:GetService("ReplicatedStorage")
+
+        local localPlayer = players.LocalPlayer
+        local playerData = replicatedStorage:WaitForChild("Player_Data")
+        local localData = playerData:WaitForChild(localPlayer.Name)
+        local clan = localData:FindFirstChild("Clan")
+
+        local remotes = replicatedStorage:WaitForChild("Remotes")
+        local sendServer = remotes:WaitForChild("To_Server")
+        local handleSpin = sendServer:WaitForChild("Handle_Initiate_S_")
+
+        handleSpin:InvokeServer("check_can_spin")
+        task.wait(1)
+
+        while ClanSpinEnabled do
+            local targetClans = getFilteredClans()
+
+            if clan and table.find(targetClans, clan.Value) then
+                ClanSpinEnabled = false
+                break
+            else
+                handleSpin:InvokeServer("check_can_spin")
+            end
+            task.wait(0.1)
+        end
+    end)
+end
 
 local function autoSpinAndClaim()
     task.spawn(function()
@@ -33,31 +80,84 @@ local function autoSpinAndClaim()
             if spinsFolder and remote then
                 local dailySpins = spinsFolder:FindFirstChild("SpinsToday")
                 if dailySpins and dailySpins.Value > 0 then
-                    local spinResult = remote:InvokeServer()
-                    if spinResult and spinResult.rewardchosen then
-                    end
+                    remote:InvokeServer()
                 else
-                    DailySpinEnabled = false 
+                    DailySpinEnabled = false
                 end
-
             end
-
             task.wait(0.1)
         end
     end)
 end
 
 
-DailySection:AddToggle({
-    Name = "Auto Daily Spin",
-    Flag = "AutoDailySpin",
-    Callback = function(state)
-        DailySpinEnabled = state
-        if state then
-            autoSpinAndClaim()
+if game.PlaceId == mainMenuPlaceID then
+    local MainWindow = Library:CreateWindow({
+        Name = "HackerLor | TksMyWife",
+        Themeable = {
+            Info = "VTrungHackerLor",
+            Credit = false,
+            Background = "",
+            Visible = true
+        }
+    })
+
+    local DailyTab = MainWindow:CreateTab("Main")
+
+    -- Section Daily Spin
+    local DailySection = DailyTab:CreateSection({Name = "Spin", Side = "Left"})
+    DailySection:AddToggle({
+        Name = "Auto Daily Spin",
+        Flag = "AutoDailySpin",
+        Callback = function(state)
+            DailySpinEnabled = state
+            if state then
+                autoSpinAndClaim()
+            end
         end
-    end
-})
+    })
+
+    DailySection:AddToggle({
+        Name = "Auto Spin Clan",
+        Flag = "AutoSpinClan",
+        Callback = function(state)
+            ClanSpinEnabled = state
+            if state then
+                autoSpinClan()
+            end
+        end
+    })
+
+
+    local ClanChooseSection = DailyTab:CreateSection({Name = "TròChơiNhânPhẩm", Side = "Right"})
+
+    ClanChooseSection:AddToggle({
+        Name = "Săn Legendary Clan",
+        Flag = "HuntLegendary",
+        Callback = function(state)
+            huntLegendary = state
+        end,
+        State = true
+    })
+
+    ClanChooseSection:AddToggle({
+        Name = "Săn Mythic Clan",
+        Flag = "HuntMythic",
+        Callback = function(state)
+            huntMythic = state
+        end,
+        State = true
+    })
+
+    ClanChooseSection:AddToggle({
+        Name = "Săn Supreme Clan",
+        Flag = "HuntSupreme",
+        Callback = function(state)
+            huntSupreme = state
+        end,
+        State = true
+    })
+end
 
 
 --// Variables \\--

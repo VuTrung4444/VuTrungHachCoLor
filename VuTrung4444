@@ -833,69 +833,51 @@ SpeedAndJump:AddSlider({
 })
 
 --GodModeState--
-local UIS = game:GetService("UserInputService")
-
-local godModeState = false
-local activeToggle = nil
-local toggles = {}
-
-local function updateButtonDisplay()
-    if godModeButton and godModeButton.Object then
-        godModeButton.Object.Text = godModeState and "God Mode: ON" or "God Mode: OFF"
-    end
-end
-
 local godModeToggle = GodModeQuick:AddToggle({
-    Name = "Enable God Mode(R)",
+    Name = "Enable God Mode",
     Flag = "ENG_Toggle",
     Callback = function(v)
         godModeState = v
-        getgenv().ENG = v
-        updateButtonDisplay()
+        ENG = v
     end
 })
 
 local function toggleGodMode(state)
     godModeState = state
-    getgenv().ENG = state
+    ENG = state
 
+    -- Cập nhật giao diện của toggle
     if godModeToggle.Callback then
         task.spawn(function()
             godModeToggle.Callback(state)
+			print("test")
         end)
     end
-
-    updateButtonDisplay() -- Cập nhật hiển thị button ngay khi God Mode đổi trạng thái
 end
 
-godModeButton = GodModeQuick:AddButton({
-    Name = "God Mode: OFF",  -- Mặc định là OFF
+GodModeQuick:AddButton({
+    Name = "Enable God Mode",
     Callback = function()
-        toggleGodMode(not godModeState)
+        toggleGodMode(not godModeState) -- Đảo trạng thái bật/tắt
     end
 })
 
--- Xử lý phím tắt để bật/tắt God Mode
-UIS.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.R then
-        toggleGodMode(not godModeState)
-    end
-end)
-
--- Tạo các toggle cho từng God Mode trong danh sách
 for _, godMode in ipairs(GodModes) do
     local toggle = GodModeQuick:AddToggle({
         Name = godMode,
-        Flag = "Gm_" .. godMode,
+        Flag = "Gm_" .. godMode, -- Thêm Flag để quản lý dễ dàng hơn nếu cần
         Callback = function(state)
             if state then
+                -- Tắt toggle trước đó nếu có và khác với toggle hiện tại
                 if activeToggle and activeToggle ~= toggle then
                     activeToggle:SetState(false)
                 end
+                -- Cập nhật toggle hiện tại và thiết lập GodSelected
                 activeToggle = toggle
                 getgenv().GodSelected = godMode
                 print("God Mode Selected: " .. godMode)
             else
+                -- Chỉ clear nếu chính toggle hiện tại bị tắt
                 if activeToggle == toggle then
                     activeToggle = nil
                     getgenv().GodSelected = nil
@@ -905,6 +887,7 @@ for _, godMode in ipairs(GodModes) do
         end
     })
 
+    -- Lưu trữ toggle để có thể kiểm soát sau này nếu cần
     toggles[godMode] = toggle
 end
 
@@ -921,24 +904,6 @@ MiscSection:AddToggle({
         end     
     end 
 })
-
---Med and Split--
-local medToggle = MiscSection:AddToggle({
-    Name = "Auto Meditate",
-    Flag = "AutoMed_Toggle",
-    Callback = function(state)
-        AutoMed(state)
-    end
-})
-
-local splitToggle = MiscSection:AddToggle({
-    Name = "Auto Boulder Split",
-    Flag = "AutoSplit_Toggle",
-    Callback = function(state)
-        AutoSplit(state)
-    end
-})
-
 
 MiscSection:AddToggle({
     Name = "Kamado God Mode [Kamado]",

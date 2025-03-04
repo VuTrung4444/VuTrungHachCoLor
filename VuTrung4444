@@ -874,7 +874,7 @@ end
 
 -- Xử lý phím tắt F để bật/tắt God Mode
 UIS.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.F then
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.E then
         toggleGodMode(not godModeState)
     end
 end)

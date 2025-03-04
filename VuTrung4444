@@ -835,53 +835,78 @@ SpeedAndJump:AddSlider({
 --GodModeState--
 local UIS = game:GetService("UserInputService")
 
-local godModeToggle = GodModeQuick:AddToggle({
-    Name = "Enable God Mode",
-    Flag = "ENG_Toggle",
-    keybind = "E",  -- Cập nhật cho vui dù thư viện không auto nhận keybind này
-    Callback = function(v)
-        godModeState = v
-        ENG = v
-    end
-})
+local godModeState = false
+local activeToggle = nil
+local toggles = {}
 
--- Thêm hàm SetState để toggle tự đổi màu + sync
-function godModeToggle:SetState(state)
-    godModeState = state
-    ENG = state
-
-    if self.Object and self.Object.ToggleFrame then
-        self.Object.ToggleFrame.BackgroundColor3 = state and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-    end
-
-    if self.Callback then
-        self.Callback(state)
+local function updateButtonDisplay()
+    if godModeButton and godModeButton.Object then
+        godModeButton.Object.Text = godModeState and "God Mode: ON" or "God Mode: OFF"
     end
 end
 
--- Bắt phím E để bật/tắt toggle trực tiếp
+local godModeToggle = GodModeQuick:AddToggle({
+    Name = "Enable God Mode(R)",
+    Flag = "ENG_Toggle",
+    Callback = function(v)
+        godModeState = v
+        getgenv().ENG = v
+        updateButtonDisplay()
+    end
+})
+
+local function toggleGodMode(state)
+    godModeState = state
+    getgenv().ENG = state
+
+    if godModeToggle.Callback then
+        task.spawn(function()
+            godModeToggle.Callback(state)
+        end)
+    end
+
+    updateButtonDisplay() -- Cập nhật hiển thị button ngay khi God Mode đổi trạng thái
+end
+
+godModeButton = GodModeQuick:AddButton({
+    Name = "God Mode: OFF",  -- Mặc định là OFF
+    Callback = function()
+        toggleGodMode(not godModeState)
+    end
+})
+
+-- Xử lý phím tắt để bật/tắt God Mode
 UIS.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.E then
-        godModeToggle:SetState(not godModeState)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.R then
+        toggleGodMode(not godModeState)
     end
 end)
 
--- Thêm nút button (vẫn để phòng anh thích bấm bằng chuột)
-local godModeButton = GodModeQuick:AddButton({
-    Name = "Enable God Mode",
-    Callback = function()
-        godModeToggle:SetState(not godModeState)
-    end
-})
+-- Tạo các toggle cho từng God Mode trong danh sách
+for _, godMode in ipairs(GodModes) do
+    local toggle = GodModeQuick:AddToggle({
+        Name = godMode,
+        Flag = "Gm_" .. godMode,
+        Callback = function(state)
+            if state then
+                if activeToggle and activeToggle ~= toggle then
+                    activeToggle:SetState(false)
+                end
+                activeToggle = toggle
+                getgenv().GodSelected = godMode
+                print("God Mode Selected: " .. godMode)
+            else
+                if activeToggle == toggle then
+                    activeToggle = nil
+                    getgenv().GodSelected = nil
+                    print("God Mode Deselected")
+                end
+            end
+        end
+    })
 
--- Phóng to button gấp đôi
-task.wait(0.1)
-if godModeButton and godModeButton.Object then
-    godModeButton.Object.Size = UDim2.new(0, 500, 0, 120) -- To gấp đôi như yêu cầu
-    godModeButton.Object.TextSize = 24  -- Cho chữ to thêm xíu, nhìn oai hơn
+    toggles[godMode] = toggle
 end
-
--- Nếu muốn thêm hiệu ứng gì khi bật God Mode, ví dụ text bay, tiếng cười, hiệu ứng ánh sáng, cứ hú em nha!
 
 
 MiscSection:AddToggle({
@@ -1207,6 +1232,24 @@ MiscSection:AddToggle({
         end
     end
 })
+
+--Med and Split--
+local medToggle = MiscSection:AddToggle({
+    Name = "Auto Meditate",
+    Flag = "AutoMed_Toggle",
+    Callback = function(state)
+        AutoMed(state)
+    end
+})
+
+local splitToggle = MiscSection:AddToggle({
+    Name = "Auto Boulder Split",
+    Flag = "AutoSplit_Toggle",
+    Callback = function(state)
+        AutoSplit(state)
+    end
+})
+
 
 --// Inf iFrames \\--
 spawn(function()

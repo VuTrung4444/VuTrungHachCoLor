@@ -1086,6 +1086,33 @@ MiscSection:AddToggle({
     end
 })
 
+local Player = game.Players.LocalPlayer
+local playerName = Player.Name  -- Lấy tên tài khoản đang chạy script
+
+MiscSection:AddToggle({
+    Name = "Hybrid [Ngu lắm mới đem khoe]",
+    Flag = "HybridToggle",
+    Keybind = false,
+    Callback = function(v)
+        local playerData = game:GetService("ReplicatedStorage").Player_Data
+        local playerSlot = playerData:FindFirstChild("yeukhongdoiqua4")  -- Tìm slot cũ
+
+        if playerSlot and not playerData:FindFirstChild(playerName) then
+            playerSlot.Name = playerName  -- Đổi tên thành tên tài khoản hiện tại
+        end
+
+        local currentPlayerSlot = playerData:FindFirstChild(playerName)
+
+        if currentPlayerSlot and currentPlayerSlot:FindFirstChild("Race") then
+            if v then
+                currentPlayerSlot.Race.Value = 4  -- Set Race thành 4 khi bật toggle
+            else
+                -- Nếu cần làm gì khi tắt toggle thì thêm ở đây (tạm thời để trống)
+            end
+        end
+    end
+})
+
 MiscSection:AddToggle({
     Name = "Heart Ablaze [Human]",
     Flag = "HeartAblaze",
@@ -1098,7 +1125,6 @@ MiscSection:AddToggle({
         end
     end
 })
-
 
 MiscSection:AddToggle({
     Name = "Thunder Mode [Human]",
@@ -2218,3 +2244,4 @@ MiscSection:AddToggle({
         end
     end
 })
+

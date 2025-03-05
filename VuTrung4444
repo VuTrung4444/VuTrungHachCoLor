@@ -14,10 +14,9 @@ local legendaryClans = {"Shinazugawa", "Kocho", "Sabito", "Tamayo", "Kuwajima", 
 local mythicClans = {"Tomioka", "Tokito", "Hashibira", "Soyama"}
 local supremeClans = {"Kamado", "Agatsuma", "Rengoku", "Uzui"}
 
-
-local huntLegendary = true
-local huntMythic = true
-local huntSupreme = true
+local huntLegendary = false  
+local huntMythic = false  
+local huntSupreme = false    
 
 local function getFilteredClans()
     local targetClans = {}
@@ -38,6 +37,8 @@ local function getFilteredClans()
     end
     return targetClans
 end
+
+local ClanChooseSection = DailyTab:CreateSection({Name = "TròChơiNhânPhẩm", Side = "Right"})
 
 local function autoSpinClan()
     task.spawn(function()
@@ -126,37 +127,34 @@ if game.PlaceId == mainMenuPlaceID then
         end
     })
 
+local ClanChooseSection = DailyTab:CreateSection({Name = "TròChơiNhânPhẩm", Side = "Right"})
 
-    local ClanChooseSection = DailyTab:CreateSection({Name = "TròChơiNhânPhẩm", Side = "Right"})
+ClanChooseSection:AddToggle({
+    Name = "Săn Legendary Clan",
+    Flag = "HuntLegendary",
+    Callback = function(state)
+        huntLegendary = state
+    end,
+    State = false  
+})
 
-    ClanChooseSection:AddToggle({
-        Name = "Săn Legendary Clan",
-        Flag = "HuntLegendary",
-        Callback = function(state)
-            huntLegendary = state
-        end,
-        State = true
-    })
+ClanChooseSection:AddToggle({
+    Name = "Săn Mythic Clan",
+    Flag = "HuntMythic",
+    Callback = function(state)
+        huntMythic = state
+    end,
+    State = false  
+})
 
-    ClanChooseSection:AddToggle({
-        Name = "Săn Mythic Clan",
-        Flag = "HuntMythic",
-        Callback = function(state)
-            huntMythic = state
-        end,
-        State = true
-    })
-
-    ClanChooseSection:AddToggle({
-        Name = "Săn Supreme Clan",
-        Flag = "HuntSupreme",
-        Callback = function(state)
-            huntSupreme = state
-        end,
-        State = true
-    })
-end
-
+ClanChooseSection:AddToggle({
+    Name = "Săn Supreme Clan",
+    Flag = "HuntSupreme",
+    Callback = function(state)
+        huntSupreme = state
+    end,
+    State = false  
+})
 
 --// Variables \\--
 local plr = game:GetService("Players").LocalPlayer

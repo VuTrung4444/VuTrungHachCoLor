@@ -65,7 +65,6 @@ local function autoSpinClan()
             else
                 handleSpin:InvokeServer("check_can_spin")
             end
-            task.wait(0.1)
         end
     end)
 end
@@ -85,7 +84,6 @@ local function autoSpinAndClaim()
                     DailySpinEnabled = false
                 end
             end
-            task.wait(0.1)
         end
     end)
 end

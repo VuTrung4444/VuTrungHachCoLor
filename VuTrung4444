@@ -1020,12 +1020,11 @@ end
 local godModeButton = GodModeQuick:AddButton({
     Name = "Enable God Mode",
     Callback = function()
-        toggleGodMode(not godModeState) -- Đảo trạng thái bật/tắt
+        toggleGodMode(not godModeState) 
     end
 })
 
 
--- Xử lý phím tắt R để bật/tắt God Mode
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == Enum.KeyCode.R then
         toggleGodMode(not godModeState)
@@ -1038,15 +1037,15 @@ for _, godMode in ipairs(GodModes) do
         Flag = "Gm_" .. godMode,
         Callback = function(state)
             if state then
-                -- Tắt toggle trước đó nếu có và khác với toggle hiện tại
+
                 if activeToggle and activeToggle ~= toggle then
                     activeToggle:SetState(false)
                 end
-                -- Cập nhật toggle hiện tại và thiết lập GodSelected
+
                 activeToggle = toggle
                 getgenv().GodSelected = godMode
             else
-                -- Chỉ clear nếu chính toggle hiện tại bị tắt
+
                 if activeToggle == toggle then
                     activeToggle = nil
                     getgenv().GodSelected = nil
@@ -1055,7 +1054,6 @@ for _, godMode in ipairs(GodModes) do
         end
     })
 
-    -- Lưu trữ toggle để có thể kiểm soát sau này nếu cần
     toggles[godMode] = toggle
 end
 
@@ -1087,30 +1085,24 @@ MiscSection:AddToggle({
 })
 
 local Player = game.Players.LocalPlayer
-local playerName = Player.Name  -- Lấy tên tài khoản đang chạy script
+local playerName = Player.Name  
 
 MiscSection:AddToggle({
-    Name = "Hybrid(Ngulắmmớiđemkhoe)",
+    Name = "Hybrid",
     Flag = "HybridToggle",
     Keybind = false,
     Callback = function(v)
         local playerData = game:GetService("ReplicatedStorage").Player_Data
-        local playerSlot = playerData:FindFirstChild("yeukhongdoiqua4")
-
-        if playerSlot and not playerData:FindFirstChild(playerName) then
-            playerSlot.Name = playerName  -- Đổi slot thành tên acc hiện tại
-        end
-
         local currentPlayerSlot = playerData:FindFirstChild(playerName)
 
         if currentPlayerSlot and currentPlayerSlot:FindFirstChild("Race") then
             if v then
                 if currentPlayerSlot.Race.Value ~= 4 then
-                    currentPlayerSlot.Race.Value = 4  -- Bật toggle => Race = 4
+                    currentPlayerSlot.Race.Value = 4 
                 end
             else
                 if currentPlayerSlot.Race.Value ~= 3 then
-                    currentPlayerSlot.Race.Value = 3  -- Tắt toggle => Race = 3
+                    currentPlayerSlot.Race.Value = 3  
                 end
             end
         end
@@ -2234,7 +2226,7 @@ local function teleportToMuzan()
 
             hrp.CFrame = CFrame.new(targetPos)
 
-            teleportToMuzanEnabled = false  -- Tự tắt toggle sau khi teleport thành công
+            teleportToMuzanEnabled = false 
         end
     end)
 end

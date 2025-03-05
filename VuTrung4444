@@ -38,8 +38,6 @@ local function getFilteredClans()
     return targetClans
 end
 
-local ClanChooseSection = DailyTab:CreateSection({Name = "TròChơiNhânPhẩm", Side = "Right"})
-
 local function autoSpinClan()
     task.spawn(function()
         local players = game:GetService("Players")

@@ -16,7 +16,7 @@ local supremeClans = {"Kamado", "Agatsuma", "Rengoku", "Uzui"}
 
 local huntLegendary = false  
 local huntMythic = false  
-local huntSupreme = false    
+local huntSupreme = true
 
 local function getFilteredClans()
     local targetClans = {}
@@ -151,7 +151,7 @@ ClanChooseSection:AddToggle({
     Callback = function(state)
         huntSupreme = state
     end,
-    State = false  
+    State = true
 })
 end
 --// Variables \\--

@@ -665,7 +665,7 @@ local MiscSection = MiscTab:CreateSection({Name = "Misc"})
 local GodModeQuick = MiscTab:CreateSection({Name = "GMQ", Side = "Right"})
 local AutoSkills = MiscTab:CreateSection({Name = "AutoSkills", Side = "Left"})
 local SpeedAndJump = MiscTab:CreateSection({Name = "Speed&Jump", Side = "Right"})
-local Ect = MiscTab:CreateSection({Name = "Ect", Side = "Right"})
+local Ect = MiscTab:CreateSection({Name = "Ect", Side = "Left"})
 
 local Debree = Workspace:WaitForChild("Debree")
 local EctFolder = ReplicatedStorage:WaitForChild("Misc")

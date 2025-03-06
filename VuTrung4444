@@ -1575,35 +1575,64 @@ spawn(function()
                 local parentFolder = game:GetService("Workspace").Mobs
                 local v = getclosestSkills(parentFolder)
 
-				while not v do
-					task.wait(0.5)
-					v = getclosestSkills(parentFolder)
-				end
-				
-				local modelCFrame = nil
-				if v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-					modelCFrame = v:GetModelCFrame()
-				end
+                while not v do
+                    task.wait(0.5)
+                    v = getclosestSkills(parentFolder)
+                end
 
-				while not modelCFrame do
-					task.wait(0.01)
-					if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-						modelCFrame = v:GetModelCFrame()
-					end
-					if not v then
-						break
-					end
-				end
+                local startTime = tick() 
 
-				if modelCFrame then
-                	game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer("arrow_knock_back_damage",game.Players.LocalPlayer.Character,modelCFrame,v,200,200)
-                	task.wait(0.275)
-				end
+                local modelCFrame = nil
+                if v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                    modelCFrame = v:GetModelCFrame()
+                end
 
+                while not modelCFrame do
+                    task.wait(0.01)
+
+                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                        modelCFrame = v:GetModelCFrame()
+                    end
+
+                    if not v then
+                        break
+                    end
+                end
+
+                while v and v.Parent and getgenv().Arrow do
+                    if tick() - startTime > 20 then
+                        break
+                    end
+
+                    if modelCFrame then
+                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                            "arrow_knock_back_damage",
+                            game.Players.LocalPlayer.Character,
+                            modelCFrame,
+                            v,
+                            200,
+                            200
+                        )
+                        task.wait(0.275)
+                    end
+
+
+                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                        modelCFrame = v:GetModelCFrame()
+                    else
+                        break
+                    end
+
+
+                    if not v.Parent then
+                        break
+                    end
+                end
             end
         end
     end
 end)
+
 
 spawn(function()
     while task.wait() do

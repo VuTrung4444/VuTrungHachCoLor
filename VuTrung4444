@@ -1574,9 +1574,8 @@ spawn(function()
     while task.wait() do
         if getgenv().Arrow then
             if not lastToggleState or (plr.Character ~= lastCharacter) then
-                
                 lastToggleState = true
-                lastCharacter = plr.Character -- Cập nhật lại nhân vật mới
+                lastCharacter = plr.Character
             end
 
             if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -1601,8 +1600,12 @@ spawn(function()
                     if not v then break end
                 end
 
-              
                 while v and v.Parent and getgenv().Arrow do
+                    local humanoid = v:FindFirstChildOfClass("Humanoid")
+                    if not humanoid or humanoid.Health <= 0 then
+                        break
+                    end
+
                     if modelCFrame then
                         game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
                             "arrow_knock_back_damage",

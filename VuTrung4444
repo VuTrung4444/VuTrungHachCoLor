@@ -1580,10 +1580,10 @@ spawn(function()
                     v = getclosestSkills(parentFolder)
                 end
 
-                local startTime = tick() 
+                local lastDamageTime = tick()
 
                 local modelCFrame = nil
-                if v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
                     modelCFrame = v:GetModelCFrame()
                 end
 
@@ -1600,11 +1600,13 @@ spawn(function()
                 end
 
                 while v and v.Parent and getgenv().Arrow do
-                    if tick() - startTime > 20 then
+                    if tick() - lastDamageTime > 5 then
                         break
                     end
 
                     if modelCFrame then
+                        local beforeDamageCheck = GetCurrentDamage()
+
                         game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
                             "arrow_knock_back_damage",
                             game.Players.LocalPlayer.Character,
@@ -1613,16 +1615,19 @@ spawn(function()
                             200,
                             200
                         )
-                        task.wait(0.275)
-                    end
 
+                        task.wait(0.275)
+
+                        if GetCurrentDamage() > beforeDamageCheck then
+                            lastDamageTime = tick()
+                        end
+                    end
 
                     if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
                         modelCFrame = v:GetModelCFrame()
                     else
                         break
                     end
-
 
                     if not v.Parent then
                         break
@@ -1632,6 +1637,21 @@ spawn(function()
         end
     end
 end)
+
+-- Hàm đếm tổng damage hiện tại
+function GetCurrentDamage()
+    local totalDamage = 0
+    for _, v in pairs(game:GetService("Workspace"):GetDescendants()) do
+        if v:IsA("BillboardGui") and v:FindFirstChild("TextLabel") then
+            local damage = tonumber(v.TextLabel.Text:match("%d+"))
+            if damage then
+                totalDamage = totalDamage + damage
+            end
+        end
+    end
+    return totalDamage
+end
+
 
 
 spawn(function()

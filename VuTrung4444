@@ -1494,11 +1494,9 @@ SelectedBosses = selectedBosses
 local plr = game.Players.LocalPlayer
 local lastCharacter = nil
 local currentTarget = nil
-local targetTimer = nil
 
 local function resetTarget()
     currentTarget = nil
-    targetTimer = nil
 end
 
 local function attackTarget(target)
@@ -1551,7 +1549,7 @@ spawn(function()
         if getgenv().AllArrow then
             if plr.Character ~= lastCharacter then
                 lastCharacter = plr.Character
-                resetTarget() -- Reset khi nhân vật mới
+                resetTarget() -- Reset khi hồi sinh
             end
 
             if not currentTarget or not currentTarget.Parent then
@@ -1563,27 +1561,47 @@ spawn(function()
                     task.wait(0.2)
                     currentTarget = getclosestSkills(parentFolder)
                 end
-
-                targetTimer = tick()
             end
 
             if currentTarget and currentTarget.Parent then
                 local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
                 if humanoid and humanoid.Health <= 0 then
-                    resetTarget() -- Mob chết reset liền
-                elseif tick() - targetTimer >= 5 then
-                    resetTarget() -- Sau 5s đổi mục tiêu nếu chưa chết
+                    resetTarget() -- Mob chết thì đổi ngay
                 else
                     attackTarget(currentTarget)
                 end
             end
 
-            task.wait(0.2) -- Giữ khoảng chờ 0.2 giây bắn dame
+            task.wait(0.2) -- Nhịp dame giữ nguyên
         else
-            resetTarget() -- Tắt toggle thì reset luôn
+            resetTarget() -- Tắt là reset
         end
     end
 end)
+
+
+local function getclosestSkills(parentFolder)
+    local closestEntity = nil
+    local closestDistance = math.huge
+    local playerPosition = plr.Character.HumanoidRootPart.Position
+    local entities = parentFolder:GetDescendants()
+
+    for _, entity in ipairs(entities) do
+        if entity:IsA("Model") then
+            local humanoid = entity:FindFirstChild("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                local modelCFrame = entity.GetModelCFrame and entity:GetModelCFrame()
+                if modelCFrame then
+                    local distance = (modelCFrame.Position - playerPosition).Magnitude
+                    if distance < closestDistance then
+                        closestDistance = distance
+                        closestEntity = entity
+                    end
+                end
+            end
+        end
+    end
+
 
 
 function getClosestPlayer(selectedPlayerName)

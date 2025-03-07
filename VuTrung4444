@@ -1665,7 +1665,6 @@ end)
 
 --AuraArrow[NoLag]--
 --AuraArrow[NoLag]--
-local lastToggleState = false
 local lastCharacter = nil
 local currentTarget = nil
 
@@ -1680,56 +1679,58 @@ end
 
 spawn(function()
     while task.wait() do
-        if getgenv().AllArrow then
-            if not lastToggleState or (plr.Character ~= lastCharacter) then
-                lastToggleState = true
-                lastCharacter = plr.Character
-                clearTarget() -- Reset target khi có nhân vật mới
-            end
+        if not getgenv().AllArrow then
+            clearTarget()
+            continue
+        end
 
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                if not currentTarget then
+        if plr.Character ~= lastCharacter then
+            lastCharacter = plr.Character
+            clearTarget()  -- Khi nhân vật mới xuất hiện, xóa target cũ
+        end
+
+        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+            clearTarget()
+            continue
+        end
+
+        if not currentTarget then
+            currentTarget = getNewTarget()
+        end
+
+        if currentTarget then
+            local modelCFrame = currentTarget:GetModelCFrame()
+
+            while getgenv().AllArrow and currentTarget and currentTarget.Parent do
+                local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
+
+                if not humanoid or humanoid.Health <= 0 or not currentTarget.Parent then
                     currentTarget = getNewTarget()
+                    break
                 end
 
-                if currentTarget then
-                    local modelCFrame = currentTarget:GetModelCFrame()
+                if modelCFrame and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                        "arrow_knock_back_damage",
+                        plr.Character,
+                        modelCFrame,
+                        currentTarget,
+                        200,
+                        200
+                    )
+                end
 
-                    while getgenv().AllArrow and currentTarget and currentTarget.Parent do
-                        local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
+                task.wait(0.2)
 
-                        if not humanoid or humanoid.Health <= 0 or not currentTarget.Parent then
-                            currentTarget = getNewTarget()
-                            break
-                        end
-
-                        if modelCFrame and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                            game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                                "arrow_knock_back_damage",
-                                plr.Character,
-                                modelCFrame,
-                                currentTarget,
-                                200,
-                                200
-                            )
-                        end
-
-                        task.wait(0.2)
-
-                        if currentTarget and currentTarget:GetModelCFrame then
-                            modelCFrame = currentTarget:GetModelCFrame()
-                        else
-                            currentTarget = getNewTarget()
-                            break
-                        end
-                    end
+                if currentTarget and currentTarget.GetModelCFrame then
+                    modelCFrame = currentTarget:GetModelCFrame()
                 else
-                    task.wait(0.2)
+                    currentTarget = getNewTarget()
+                    break
                 end
             end
         else
-            lastToggleState = false
-            clearTarget()
+            task.wait(0.2)
         end
     end
 end)

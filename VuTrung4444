@@ -1579,31 +1579,6 @@ spawn(function()
     end
 end)
 
-
-local function getclosestSkills(parentFolder)
-    local closestEntity = nil
-    local closestDistance = math.huge
-    local playerPosition = plr.Character.HumanoidRootPart.Position
-    local entities = parentFolder:GetDescendants()
-
-    for _, entity in ipairs(entities) do
-        if entity:IsA("Model") then
-            local humanoid = entity:FindFirstChild("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                local modelCFrame = entity.GetModelCFrame and entity:GetModelCFrame()
-                if modelCFrame then
-                    local distance = (modelCFrame.Position - playerPosition).Magnitude
-                    if distance < closestDistance then
-                        closestDistance = distance
-                        closestEntity = entity
-                    end
-                end
-            end
-        end
-    end
-
-
-
 function getClosestPlayer(selectedPlayerName)
     local closestPlayer = nil
     local closestDistance = math.huge

@@ -1592,49 +1592,46 @@ local function resetState()
         task.cancel(arrowLoop)
         arrowLoop = nil
     end
-    lastCharacter = plr.Character
 end
 
-local function attackLoop()
+local function startArrowAttack()
     arrowLoop = task.spawn(function()
         while getgenv().Arrow do
-            if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
-                resetState()
-                break
-            end
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local parentFolder = game:GetService("Workspace").Mobs
+                local v = getclosestSkills(parentFolder)
 
-            local parentFolder = game:GetService("Workspace").Mobs
-            local v, modelCFrame
-
-            repeat
-                v = getclosestSkills(parentFolder)
-                if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-                    modelCFrame = v:GetModelCFrame()
-                else
-                    modelCFrame = nil
+                while not v do
+                    task.wait(0.5)
+                    v = getclosestSkills(parentFolder)
                 end
-                task.wait(0.2)
-            until (v and modelCFrame) or not getgenv().Arrow
 
-            while getgenv().Arrow and v and v.Parent and plr.Character do
-                local humanoid = v:FindFirstChildOfClass("Humanoid")
-                if not humanoid or humanoid.Health <= 0 then break end
-
+                local modelCFrame = nil
                 if v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
                     modelCFrame = v:GetModelCFrame()
                 end
 
-                game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                    "arrow_knock_back_damage",
-                    plr.Character,
-                    modelCFrame,
-                    v,
-                    200,
-                    200
-                )
-                task.wait(0.275)
+                while not modelCFrame do
+                    task.wait(0.2)
+                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                        modelCFrame = v:GetModelCFrame()
+                    end
+                    if not v then
+                        break
+                    end
+                end
 
-                if not v.Parent then break end
+                if modelCFrame then
+                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                        "arrow_knock_back_damage",
+                        plr.Character,
+                        modelCFrame,
+                        v,
+                        200,
+                        200
+                    )
+                    task.wait(0.275)
+                end
             end
         end
     end)
@@ -1645,9 +1642,10 @@ spawn(function()
         if getgenv().Arrow then
             if plr.Character ~= lastCharacter then
                 resetState()
-                attackLoop()
+                lastCharacter = plr.Character
+                startArrowAttack()
             elseif not arrowLoop then
-                attackLoop()
+                startArrowAttack()
             end
         else
             resetState()
@@ -1655,26 +1653,6 @@ spawn(function()
     end
 end)
 
-
-spawn(function()
-    while task.wait() do
-        if getgenv().Arrow then
-            if plr.Character ~= lastCharacter then
-                startOrRestartLoop()
-            elseif not arrowLoop then
-                attackLoop()
-            end
-        else
-            resetState()
-        end
-    end
-end)
-
-plr.CharacterAdded:Connect(function()
-    if getgenv().Arrow then
-        startOrRestartLoop()
-    end
-end)
 
 spawn(function()
     while task.wait() do
@@ -1771,7 +1749,7 @@ function attackLoop()
                         200,
                         200
                     )
-                    task.wait(0.2)
+                    task.wait(0.3)
                 end
 
                 if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then

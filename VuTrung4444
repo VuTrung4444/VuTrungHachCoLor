@@ -1491,93 +1491,34 @@ SelectedBosses = selectedBosses
 
 
 --// Farm \\--
-local plr = game.Players.LocalPlayer
-local lastCharacter = nil
-local currentTarget = nil
-
-local function resetTarget()
-    currentTarget = nil
-end
-
-local function attackTarget(target)
-    if target and target.Parent and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-        local modelCFrame = target.GetModelCFrame and target:GetModelCFrame()
-        if modelCFrame then
-            game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                "arrow_knock_back_damage",
-                plr.Character,
-                modelCFrame,
-                target,
-                200,
-                200
-            )
-        end
-    end
-end
-
-local function getclosestSkills(parentFolder)
+function getclosestSkills(parentFolder)
     local closestEntity = nil
     local closestDistance = math.huge
-    local playerPosition = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character.HumanoidRootPart.Position
+    local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+    local entities = parentFolder:GetDescendants()
 
-    if not playerPosition then
-        return nil
-    end
-
-    for _, entity in ipairs(parentFolder:GetChildren()) do
+    for _, entity in ipairs(entities) do
         if entity:IsA("Model") then
             local humanoid = entity:FindFirstChild("Humanoid")
             if humanoid and humanoid.Health > 0 then
-                local modelCFrame = entity.GetModelCFrame and entity:GetModelCFrame()
-                if modelCFrame then
-                    local distance = (modelCFrame.Position - playerPosition).Magnitude
-                    if distance < closestDistance then
-                        closestDistance = distance
-                        closestEntity = entity
-                    end
-                end
+				local modelCFrame = nil
+				if entity.GetModelCFrame and type(entity.GetModelCFrame) == "function" then
+					modelCFrame = entity:GetModelCFrame()
+				end
+				if modelCFrame then
+					local distance = (entity:GetModelCFrame().Position - playerPosition).Magnitude
+                	if distance < closestDistance then
+                   		closestDistance = distance
+                  		closestEntity = entity
+					end
+				end	
+
             end
         end
     end
-
     return closestEntity
 end
 
-spawn(function()
-    while task.wait(0.1) do
-        if getgenv().AllArrow then
-            if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
-                resetTarget()
-                continue
-            end
-
-            if plr.Character ~= lastCharacter then
-                lastCharacter = plr.Character
-                resetTarget()
-            end
-
-            local parentFolder = game:GetService("Workspace").Mobs
-
-            if not currentTarget or not currentTarget.Parent then
-                currentTarget = getclosestSkills(parentFolder)
-            end
-
-            if currentTarget and currentTarget.Parent then
-                local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
-                if not humanoid or humanoid.Health <= 0 then
-                    resetTarget()
-                else
-                    attackTarget(currentTarget)
-                    task.wait(0.2)  -- Tốc độ gây dame
-                end
-            else
-                resetTarget()
-            end
-        else
-            resetTarget()
-        end
-    end
-end)
     
 
 function getClosestPlayer(selectedPlayerName)
@@ -1723,6 +1664,72 @@ spawn(function()
 end)
 
 
+--AuraArrow[NoLag]--
+local lastToggleState = false
+local lastCharacter = nil
+
+spawn(function()
+    while task.wait() do
+        if getgenv().AllArrow then
+            if not lastToggleState or (plr.Character ~= lastCharacter) then
+                lastToggleState = true
+                lastCharacter = plr.Character
+            end
+
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local parentFolder = game:GetService("Workspace").Mobs
+                local v = getclosestSkills(parentFolder)
+
+                while not v and getgenv().Arrow do
+                    task.wait(0.5)
+                    v = getclosestSkills(parentFolder)
+                end
+
+                local modelCFrame = nil
+                if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                    modelCFrame = v:GetModelCFrame()
+                end
+
+                while not modelCFrame and getgenv().Arrow do
+                    task.wait(0.01)
+                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                        modelCFrame = v:GetModelCFrame()
+                    end
+                    if not v then break end
+                end
+
+                while v and v.Parent and getgenv().Arrow do
+                    local humanoid = v:FindFirstChildOfClass("Humanoid")
+                    if not humanoid or humanoid.Health <= 0 then
+                        break
+                    end
+
+                    if modelCFrame then
+                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                            "arrow_knock_back_damage",
+                            plr.Character,
+                            modelCFrame,
+                            v,
+                            200,
+                            200
+                        )
+                        task.wait(0.2)
+                    end
+
+                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                        modelCFrame = v:GetModelCFrame()
+                    else
+                        break
+                    end
+
+                    if not v.Parent then break end
+                end
+            end
+        else
+            lastToggleState = false
+        end
+    end
+end)
 
 --// NoClip \\--
 local antifallActive = false 

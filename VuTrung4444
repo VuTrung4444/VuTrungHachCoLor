@@ -1491,34 +1491,109 @@ SelectedBosses = selectedBosses
 
 
 --// Farm \\--
+local plr = game.Players.LocalPlayer
+local lastCharacter = nil
+local currentTarget = nil
+local targetTimer = nil
 
 function getclosestSkills(parentFolder)
     local closestEntity = nil
     local closestDistance = math.huge
-    local playerPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+    local playerPosition = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character.HumanoidRootPart.Position or Vector3.zero
     local entities = parentFolder:GetDescendants()
 
     for _, entity in ipairs(entities) do
         if entity:IsA("Model") then
             local humanoid = entity:FindFirstChild("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-				local modelCFrame = nil
-				if entity.GetModelCFrame and type(entity.GetModelCFrame) == "function" then
-					modelCFrame = entity:GetModelCFrame()
-				end
-				if modelCFrame then
-					local distance = (entity:GetModelCFrame().Position - playerPosition).Magnitude
-                	if distance < closestDistance then
-                   		closestDistance = distance
-                  		closestEntity = entity
-					end
-				end	
-
+            if humanoid and humanoid.Health > 0 and entity.GetModelCFrame and type(entity.GetModelCFrame) == "function" then
+                local modelCFrame = entity:GetModelCFrame()
+                local distance = (modelCFrame.Position - playerPosition).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestEntity = entity
+                end
             end
         end
     end
     return closestEntity
 end
+
+local function resetAll()
+    currentTarget = nil
+    targetTimer = nil
+    lastCharacter = plr.Character
+end
+
+local function attackTarget(target)
+    if not target or not target.Parent then return false end
+
+    local modelCFrame = target.GetModelCFrame and target:GetModelCFrame()
+    if not modelCFrame then return false end
+
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+        "arrow_knock_back_damage",
+        plr.Character,
+        modelCFrame,
+        target,
+        200,
+        200
+    )
+    return true
+end
+
+spawn(function()
+    resetAll()
+
+    while task.wait(0.2) do
+        if not getgenv().AllArrow then
+            resetAll()
+            continue
+        end
+
+        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+            resetAll()
+            continue
+        end
+
+        if lastCharacter ~= plr.Character then
+            resetAll()
+        end
+
+        if not currentTarget or not currentTarget.Parent then
+            currentTarget = getclosestSkills(game:GetService("Workspace").Mobs)
+            targetTimer = tick()
+        end
+
+        if currentTarget and currentTarget.Parent then
+            local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
+            if not humanoid or humanoid.Health <= 0 then
+                currentTarget = nil
+                targetTimer = nil
+                continue
+            end
+
+            local success = attackTarget(currentTarget)
+            if not success then
+                currentTarget = nil
+                targetTimer = nil
+            end
+
+            if tick() - targetTimer >= 5 then
+                currentTarget = nil
+                targetTimer = nil
+            end
+        else
+            task.wait(0.5)  -- Chờ 0.5s trước khi tìm target mới để giảm tải
+        end
+    end
+end)
+
+plr.CharacterAdded:Connect(function()
+    if getgenv().AllArrow then
+        resetAll()
+    end
+end)
+
 
 
 function getClosestPlayer(selectedPlayerName)
@@ -1663,47 +1738,6 @@ spawn(function()
     end
 end)
 
---AuraArrow[NoLag]--
---AuraArrow[NoLag]--
-
-local lastCharacter = nil
-local currentTarget = nil
-local targetStartTime = 0
-local targetTimeout = 5 -- 5 giây không chết đổi mục tiêu
-local attackDelay = 0.2 -- Giữ nguyên delay 0.2s
-local findTargetDelay = 0.5 -- Delay khi tìm target mới
-local plr = game.Players.LocalPlayer
-
-local function resetCharacterAndTarget()
-    lastCharacter = plr.Character
-    currentTarget = nil
-    targetStartTime = 0
-end
-
-local function getNewTarget()
-    task.wait(findTargetDelay)
-    return getclosestSkills(game:GetService("Workspace").Mobs)
-end
-
-local function shouldChangeTarget()
-    return currentTarget and (tick() - targetStartTime) >= targetTimeout
-end
-
-local function attackTarget(target)
-    if not target or not target.Parent or not target.GetModelCFrame then return false end
-    local modelCFrame = target:GetModelCFrame()
-
-    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-        "arrow_knock_back_damage",
-        plr.Character,
-        modelCFrame,
-        target,
-        200,
-        200
-    )
-
-    return true
-end
 
 spawn(function()
     while task.wait() do

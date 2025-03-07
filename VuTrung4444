@@ -1664,70 +1664,96 @@ spawn(function()
 end)
 
 --AuraArrow[NoLag]--
---AuraArrow[NoLag]--
+-- AuraArrow [Optimized + Character Update + Fail-safe] --
 local lastCharacter = nil
 local lastRootPart = nil
+
+local function updateCharacter()
+    local player = game.Players.LocalPlayer
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        lastCharacter = player.Character
+        lastRootPart = player.Character.HumanoidRootPart
+    else
+        lastCharacter = nil
+        lastRootPart = nil
+    end
+end
+
+local function ensureCharacter()
+    while not lastCharacter or not lastRootPart do
+        updateCharacter()
+        task.wait(0.5)
+    end
+end
 
 spawn(function()
     while task.wait() do
         if getgenv().AllArrow then
-            local player = game.Players.LocalPlayer
+            ensureCharacter()  -- Đảm bảo luôn có nhân vật mới
 
-            if player.Character ~= lastCharacter then
-                lastCharacter = player.Character
-                lastRootPart = lastCharacter and lastCharacter:FindFirstChild("HumanoidRootPart")
+            local parentFolder = game:GetService("Workspace").Mobs
+            local v = getclosestSkills(parentFolder)
+
+            local searchTimeout = os.clock() + 5  -- Thêm timeout tối đa 5 giây tìm quái
+            while not v and getgenv().AllArrow do
+                task.wait(0.2)
+                v = getclosestSkills(parentFolder)
+                if os.clock() > searchTimeout then break end  -- Thoát nếu tìm quá lâu
             end
 
-            if lastCharacter and lastRootPart then
-                local parentFolder = game:GetService("Workspace").Mobs
-                local v = getclosestSkills(parentFolder)
+            if not v then continue end
 
-                while not v and getgenv().AllArrow do
-                    task.wait(0.5)
-                    v = getclosestSkills(parentFolder)
+            local function getValidModelCFrame(target)
+                if target and target.Parent and target.GetModelCFrame and type(target.GetModelCFrame) == "function" then
+                    return target:GetModelCFrame()
                 end
-
-                local modelCFrame = nil
-                if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-                    modelCFrame = v:GetModelCFrame()
-                end
-
-                while not modelCFrame and getgenv().AllArrow do
-                    task.wait(0.01)
-                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-                        modelCFrame = v:GetModelCFrame()
-                    end
-                    if not v then break end
-                end
-
-                while v and v.Parent and getgenv().AllArrow do
-                    local humanoid = v:FindFirstChildOfClass("Humanoid")
-                    if not humanoid or humanoid.Health <= 0 then break end
-
-                    if modelCFrame then
-                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                            "arrow_knock_back_damage",
-                            lastCharacter,
-                            modelCFrame,
-                            v,
-                            200,
-                            200
-                        )
-                        task.wait(0.2)
-                    end
-
-                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-                        modelCFrame = v:GetModelCFrame()
-                    else
-                        break
-                    end
-
-                    if not v.Parent then break end
-                end
+                return nil
             end
+
+            local modelCFrame = getValidModelCFrame(v)
+
+            local modelTimeout = os.clock() + 3  -- Thêm timeout tối đa 3 giây lấy CFrame
+            while not modelCFrame and getgenv().AllArrow do
+                task.wait(0.05)
+                modelCFrame = getValidModelCFrame(v)
+                if os.clock() > modelTimeout then break end  -- Nếu lâu quá thì bỏ qua
+                if not v.Parent then break end
+            end
+
+            while v and v.Parent and getgenv().AllArrow do
+                ensureCharacter()  -- Trong khi bắn vẫn theo dõi nhân vật mới
+
+                local humanoid = v:FindFirstChildOfClass("Humanoid")
+                if not humanoid or humanoid.Health <= 0 then break end
+
+                if modelCFrame then
+                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                        "arrow_knock_back_damage",
+                        lastCharacter,
+                        modelCFrame,
+                        v,
+                        200,
+                        200
+                    )
+                    task.wait(0.15)  -- Giảm delay giữa các phát để bắn nhanh hơn
+                end
+
+                modelCFrame = getValidModelCFrame(v)  -- Luôn cập nhật mới nhất
+                if not v.Parent then break end
+            end
+        else
+            lastCharacter = nil  -- Reset khi tắt toggle
+            lastRootPart = nil
         end
     end
 end)
+
+game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)  -- Cho nhân vật load xong rồi mới cập nhật
+    updateCharacter()
+end)
+
+updateCharacter()  -- Khởi động lần đầu
 
 --// NoClip \\--
 local antifallActive = false 
@@ -1801,9 +1827,31 @@ end)
 
 
 --AutoBoss--
---AutoBoss--
+--AutoBoss [Full Character Tracking Fix]--
+
 local FarmLoop = nil
 local VisitedBosses = {}
+
+local lastCharacter = nil
+local lastRootPart = nil
+
+local function updateCharacter()
+    local player = game.Players.LocalPlayer
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        lastCharacter = player.Character
+        lastRootPart = player.Character.HumanoidRootPart
+    else
+        lastCharacter = nil
+        lastRootPart = nil
+    end
+end
+
+local function ensureCharacter()
+    while not lastCharacter or not lastRootPart do
+        updateCharacter()
+        task.wait(0.5)
+    end
+end
 
 local function startFarmLoop()
     if FarmLoop then
@@ -1811,27 +1859,14 @@ local function startFarmLoop()
     end
 
     FarmLoop = task.spawn(function()
-        local player = game.Players.LocalPlayer
-        local currentCharacter = player.Character
-        local currentRootPart = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
-
-        local function updateCharacter()
-            currentCharacter = player.Character
-            currentRootPart = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
-        end
-
-        updateCharacter()
+        local bossCount = #AllowedBosses
 
         while getgenv().Farm do
-            if not player.Character or player.Character ~= currentCharacter then
-                updateCharacter()
-                VisitedBosses = {}  -- Reset vòng lặp khi chết
-                UpdateActiveBossLocations()
-            end
+            ensureCharacter()
 
             UpdateActiveBossLocations()
 
-            if #AllowedBosses == 0 then
+            if bossCount == 0 then
                 task.wait(1)
                 continue
             end
@@ -1864,12 +1899,9 @@ local function startFarmLoop()
 
             repeat
                 task.wait()
-                if not currentCharacter or player.Character ~= currentCharacter then
-                    updateCharacter()
-                    if TweenFa then TweenFa:Cancel() end
-                    break
-                end
-            until not getgenv().Farm or GetDistance(bossCFrame) < 20
+                ensureCharacter()
+                if not getgenv().Farm then break end
+            until GetDistance(bossCFrame) < 20
 
             if not getgenv().Farm then break end
             if TweenFa then TweenFa:Cancel() end
@@ -1877,22 +1909,21 @@ local function startFarmLoop()
             local bossEntity = getclosest({boss.Name}, game:GetService("Workspace").Mobs)
             if bossEntity and bossEntity:FindFirstChild("Humanoid") then
                 while getgenv().Farm and bossEntity.Parent and bossEntity.Humanoid.Health > 0 do
-                    if not currentCharacter or player.Character ~= currentCharacter then
-                        updateCharacter()
-                        if TweenFa then TweenFa:Cancel() end
-                        break
-                    end
+                    ensureCharacter()
                     task.wait()
 
                     local entityCFrame = bossEntity:GetModelCFrame() * FarmModes
-                    if GetDistance(entityCFrame) >= 25 and GetDistance(entityCFrame) < 150 then
-                        currentRootPart.CFrame = entityCFrame
+                    local distance = GetDistance(entityCFrame)
+
+                    if distance >= 25 and distance < 150 then
+                        lastRootPart.CFrame = CFrame.new(entityCFrame.Position, entityCFrame.Position + (lastRootPart.CFrame.LookVector * Vector3.new(1, 0, 1)))
                     else
                         if not TweenFa then
                             TweenFa = Tween(entityCFrame)
                         end
                     end
-                    AtBoss = GetDistance(entityCFrame) < 25
+
+                    AtBoss = distance < 25
                 end
             else
                 task.wait(1)
@@ -1904,20 +1935,34 @@ local function startFarmLoop()
     end)
 end
 
+local function monitorCharacter()
+    while true do
+        updateCharacter()
+        if getgenv().Farm and not FarmLoop and lastCharacter and lastRootPart then
+            startFarmLoop()
+        end
+        task.wait(0.5)
+    end
+end
+
 game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+    updateCharacter()
     if getgenv().Farm then
         startFarmLoop()
     end
 end)
 
+task.spawn(monitorCharacter)
+
 game:GetService("RunService").Heartbeat:Connect(function()
-    if getgenv().Farm and not FarmLoop then
-        startFarmLoop()
-    elseif not getgenv().Farm and FarmLoop then
+    if not getgenv().Farm and FarmLoop then
         task.cancel(FarmLoop)
         FarmLoop = nil
     end
 end)
+
+            
 
 --MoveAround--
 local MoveLoop = nil

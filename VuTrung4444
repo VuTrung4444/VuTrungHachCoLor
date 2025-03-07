@@ -1668,85 +1668,70 @@ end)
 
 local lastCharacter = nil
 local currentTarget = nil
-local lastAttackTime = 0
+local targetStartTime = 0
+local targetTimeout = 5 -- 5 giây không chết đổi mục tiêu
+local attackDelay = 0.2 -- Giữ nguyên delay 0.2s
+local findTargetDelay = 0.5 -- Delay khi tìm target mới
+local plr = game.Players.LocalPlayer
 
-local function resetTarget()
+local function resetCharacterAndTarget()
+    lastCharacter = plr.Character
     currentTarget = nil
-    lastAttackTime = 0
+    targetStartTime = 0
 end
 
-local function refreshCharacter()
-    lastCharacter = plr.Character
-    resetTarget()
+local function getNewTarget()
+    task.wait(findTargetDelay)
+    return getclosestSkills(game:GetService("Workspace").Mobs)
+end
+
+local function shouldChangeTarget()
+    return currentTarget and (tick() - targetStartTime) >= targetTimeout
+end
+
+local function attackTarget(target)
+    if not target or not target.Parent or not target.GetModelCFrame then return false end
+    local modelCFrame = target:GetModelCFrame()
+
+    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+        "arrow_knock_back_damage",
+        plr.Character,
+        modelCFrame,
+        target,
+        200,
+        200
+    )
+
+    return true
 end
 
 spawn(function()
     while task.wait() do
         if getgenv().AllArrow then
-            if not lastCharacter or (plr.Character ~= lastCharacter) then
-                refreshCharacter()
+            if plr.Character ~= lastCharacter then
+                resetCharacterAndTarget()
             end
 
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local parentFolder = game:GetService("Workspace").Mobs
+            if not currentTarget or not currentTarget.Parent or shouldChangeTarget() then
+                currentTarget = getNewTarget()
+                targetStartTime = tick()
+            end
 
-                if not currentTarget or not currentTarget.Parent then
-                    resetTarget()
-                    task.wait(0.2)  -- Giảm tải như chồng yêu cầu
-                    currentTarget = getclosestSkills(parentFolder)
-                end
-
-                local modelCFrame = nil
-                if currentTarget and currentTarget.GetModelCFrame and type(currentTarget.GetModelCFrame) == "function" then
-                    modelCFrame = currentTarget:GetModelCFrame()
-                end
-
-                if not modelCFrame then
-                    resetTarget()
+            if currentTarget then
+                local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
+                if not humanoid or humanoid.Health <= 0 then
+                    currentTarget = nil
                     continue
                 end
 
-                while currentTarget and currentTarget.Parent and getgenv().Arrow do
-                    local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
-                    if not humanoid or humanoid.Health <= 0 then
-                        resetTarget()
-                        break
-                    end
-
-                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                        "arrow_knock_back_damage",
-                        plr.Character,
-                        modelCFrame,
-                        currentTarget,
-                        200,
-                        200
-                    )
-
-                    lastAttackTime = tick()
-
-                    task.wait(0.2)  -- Giữ nguyên nhịp bắn cũ của chồng
-
-                    if not currentTarget.Parent then
-                        resetTarget()
-                        break
-                    end
-
-                    if tick() - lastAttackTime >= 5 then
-                        resetTarget()  -- Đổi mục tiêu sau 5 giây chưa xong
-                        break
-                    end
-
-                    if currentTarget and currentTarget.GetModelCFrame and type(currentTarget.GetModelCFrame) == "function" then
-                        modelCFrame = currentTarget:GetModelCFrame()
-                    else
-                        resetTarget()
-                        break
-                    end
+                if attackTarget(currentTarget) then
+                    task.wait(attackDelay)
                 end
+            else
+                task.wait(findTargetDelay)
             end
         else
-            lastCharacter = nil
-            resetTarget()
+            resetCharacterAndTarget()
         end
     end
 end)

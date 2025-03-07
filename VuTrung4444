@@ -1665,68 +1665,85 @@ end)
 
 
 --AuraArrow[NoLag]--
-local lastToggleState = false
+local plr = game.Players.LocalPlayer
 local lastCharacter = nil
+local currentTarget = nil
+local arrowLoop = nil
+
+function resetState()
+    lastCharacter = nil
+    currentTarget = nil
+    if arrowLoop then
+        task.cancel(arrowLoop)
+        arrowLoop = nil
+    end
+end
+
+function attackLoop()
+    arrowLoop = task.spawn(function()
+        while getgenv().AllArrow do
+            if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+                resetState()
+                break
+            end
+
+            local parentFolder = game:GetService("Workspace").Mobs
+            local v = getclosestSkills(parentFolder)
+
+            while not v and getgenv().AllArrow do
+                task.wait(0.5)
+                v = getclosestSkills(parentFolder)
+            end
+
+            local modelCFrame = nil
+            if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                modelCFrame = v:GetModelCFrame()
+            end
+
+            while v and v.Parent and getgenv().AllArrow do
+                local humanoid = v:FindFirstChildOfClass("Humanoid")
+                if not humanoid or humanoid.Health <= 0 then
+                    break
+                end
+
+                if modelCFrame then
+                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                        "arrow_knock_back_damage",
+                        plr.Character,
+                        modelCFrame,
+                        v,
+                        200,
+                        200
+                    )
+                    task.wait(0.2)
+                end
+
+                if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                    modelCFrame = v:GetModelCFrame()
+                else
+                    break
+                end
+
+                if not v.Parent then break end
+            end
+
+            task.wait(0.2) -- chờ nhẹ giảm tải
+        end
+    end)
+end
 
 spawn(function()
     while task.wait() do
         if getgenv().AllArrow then
-            if not lastToggleState or (plr.Character ~= lastCharacter) then
-                lastToggleState = true
+            if plr.Character ~= lastCharacter then
+                resetState()
                 lastCharacter = plr.Character
-            end
-
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local parentFolder = game:GetService("Workspace").Mobs
-                local v = getclosestSkills(parentFolder)
-
-                while not v and getgenv().Arrow do
-                    task.wait(0.5)
-                    v = getclosestSkills(parentFolder)
-                end
-
-                local modelCFrame = nil
-                if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-                    modelCFrame = v:GetModelCFrame()
-                end
-
-                while not modelCFrame and getgenv().Arrow do
-                    task.wait(0.01)
-                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-                        modelCFrame = v:GetModelCFrame()
-                    end
-                    if not v then break end
-                end
-
-                while v and v.Parent and getgenv().Arrow do
-                    local humanoid = v:FindFirstChildOfClass("Humanoid")
-                    if not humanoid or humanoid.Health <= 0 then
-                        break
-                    end
-
-                    if modelCFrame then
-                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                            "arrow_knock_back_damage",
-                            plr.Character,
-                            modelCFrame,
-                            v,
-                            200,
-                            200
-                        )
-                        task.wait(0.2)
-                    end
-
-                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-                        modelCFrame = v:GetModelCFrame()
-                    else
-                        break
-                    end
-
-                    if not v.Parent then break end
-                end
+                attackLoop()
+            elseif not arrowLoop then
+                attackLoop()
             end
         else
-            lastToggleState = false
+            resetState()
         end
     end
 end)
@@ -1802,7 +1819,6 @@ plr.CharacterAdded:Connect(function()
 end)
 
 
---AutoBoss--
 --AutoBoss--
 local FarmLoop = nil
 local VisitedBosses = {}

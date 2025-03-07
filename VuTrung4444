@@ -1134,13 +1134,10 @@ MiscSection:AddToggle({
 MiscSection:AddToggle({
     Name = "No Sun Dmg",
     Flag = "NS",
-    Keybind = false,
     Callback = function (v)
         if game:GetService("Players").LocalPlayer.PlayerScripts.Small_Scripts.Gameplay:FindFirstChild("Sun_Damage") then
             if v == true then
-                    game:GetService("Players").LocalPlayer.PlayerScripts.Small_Scripts.Gameplay.Sun_Damage.Disabled = true
-                else
-                    game:GetService("Players").LocalPlayer.PlayerScripts.Small_Scripts.Gameplay.Sun_Damage.Disabled = false
+                    game:GetService("Players").LocalPlayer.PlayerScripts.Small_Scripts.Gameplay.Sun_Damage.Disabled = true                
                 end
             end
     end
@@ -1803,9 +1800,18 @@ plr.CharacterAdded:Connect(function()
     setMovementStats()
 end)
 
+
 --AutoBoss--
 local FarmLoop = nil
 local VisitedBosses = {}
+
+local function waitForCharacter()
+    local player = game.Players.LocalPlayer
+    while not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") do
+        player.CharacterAdded:Wait()
+        task.wait(0.5)
+    end
+end
 
 local function startFarmLoop()
     if FarmLoop then
@@ -1813,23 +1819,15 @@ local function startFarmLoop()
     end
 
     FarmLoop = task.spawn(function()
-        local bossCount = #AllowedBosses
-        local function waitForCharacter()
-            local player = game.Players.LocalPlayer
-            while not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") do
-                player.CharacterAdded:Wait()
-                task.wait(1)
-            end
-        end
-
         while getgenv().Farm do
             waitForCharacter()
             UpdateActiveBossLocations()
 
-            if bossCount == 0 then
+            if #AllowedBosses == 0 then
                 task.wait(1)
                 continue
             end
+
 
             local candidateBosses = {}
             for _, boss in pairs(ActiveBossLocations) do
@@ -1837,67 +1835,62 @@ local function startFarmLoop()
                     table.insert(candidateBosses, boss)
                 end
             end
-
             if #candidateBosses == 0 then
-                VisitedBosses = {} -- Reset khi đã thăm hết
+                VisitedBosses = {}
                 candidateBosses = ActiveBossLocations
             end
+
 
             table.sort(candidateBosses, function(a, b)
                 return GetDistance(a.Position) < GetDistance(b.Position)
             end)
 
-            local boss = candidateBosses[1]
-            if not boss then
+            local targetBoss = candidateBosses[1]
+            if not targetBoss then
                 task.wait(1)
                 continue
             end
 
-            local bossCFrame = CFrame.new(boss.Position)
+            -- Bay đến boss
+            local bossCFrame = CFrame.new(targetBoss.Position)
             local TweenFa = Tween(bossCFrame)
-		AtBoss = false
+            AtBoss = false
 
             repeat
                 task.wait()
                 if not game.Players.LocalPlayer.Character then
-                    if TweenFa then
-                        TweenFa:Cancel()
-                        TweenFa = nil
-                    end
+                    if TweenFa then TweenFa:Cancel() end
                     break
                 end
             until not getgenv().Farm or GetDistance(bossCFrame) < 20
 
             if not getgenv().Farm then break end
-            if TweenFa then
-                TweenFa:Cancel()
-                TweenFa = nil
-            end
+            if TweenFa then TweenFa:Cancel() end
 
-            local bossEntity = getclosest({boss.Name}, game:GetService("Workspace").Mobs)
+
+            local bossEntity = getclosest({targetBoss.Name}, game:GetService("Workspace").Mobs)
             if bossEntity and bossEntity:FindFirstChild("Humanoid") then
                 while getgenv().Farm and bossEntity.Parent and bossEntity.Humanoid.Health > 0 do
                     if not game.Players.LocalPlayer.Character then
                         break
                     end
-                    task.wait()
 
                     local entityCFrame = bossEntity:GetModelCFrame() * FarmModes
                     if GetDistance(entityCFrame) >= 25 and GetDistance(entityCFrame) < 150 then
                         game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = entityCFrame
-                    else
-                        if not TweenFa then
-                            TweenFa = Tween(entityCFrame)
-                        end
+                    elseif not TweenFa then
+                        TweenFa = Tween(entityCFrame)
                     end
+
                     AtBoss = GetDistance(entityCFrame) < 25
+                    task.wait()
                 end
             else
                 task.wait(1)
             end
 
-            VisitedBosses[boss.Name] = true
-	UpdateActiveBossLocations()
+            VisitedBosses[targetBoss.Name] = true
+            UpdateActiveBossLocations()
         end
     end)
 end
@@ -1916,6 +1909,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
         FarmLoop = nil
     end
 end)
+
 
 
 --MoveAround--

@@ -1664,8 +1664,10 @@ spawn(function()
 end)
 
 --AuraArrow[NoLag]--
+--AuraArrow[NoLag]--
 local lastToggleState = false
 local lastCharacter = nil
+local lastRootPart = nil
 
 spawn(function()
     while task.wait() do
@@ -1673,9 +1675,16 @@ spawn(function()
             if not lastToggleState or (plr.Character ~= lastCharacter) then
                 lastToggleState = true
                 lastCharacter = plr.Character
+                lastRootPart = lastCharacter and lastCharacter:FindFirstChild("HumanoidRootPart")
             end
 
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            -- Nếu nhân vật mới hồi sinh, cập nhật lại luôn
+            if plr.Character ~= lastCharacter then
+                lastCharacter = plr.Character
+                lastRootPart = lastCharacter and lastCharacter:FindFirstChild("HumanoidRootPart")
+            end
+
+            if lastCharacter and lastRootPart then
                 local parentFolder = game:GetService("Workspace").Mobs
                 local v = getclosestSkills(parentFolder)
 
@@ -1706,7 +1715,7 @@ spawn(function()
                     if modelCFrame then
                         game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
                             "arrow_knock_back_damage",
-                            plr.Character,
+                            lastCharacter,
                             modelCFrame,
                             v,
                             200,
@@ -1729,7 +1738,6 @@ spawn(function()
         end
     end
 end)
-
 
 --// NoClip \\--
 local antifallActive = false 
@@ -1803,6 +1811,7 @@ end)
 
 
 --AutoBoss--
+--AutoBoss--
 local FarmLoop = nil
 local VisitedBosses = {}
 
@@ -1865,9 +1874,16 @@ local function startFarmLoop()
             repeat
                 task.wait()
 
+                -- Luôn cập nhật nhân vật mới nhất sau mỗi frame
                 if player.Character ~= currentCharacter or currentCharacter ~= player.Character then
                     currentCharacter = player.Character
                     currentRootPart = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
+
+                    -- Hủy tween cũ ngay khi có nhân vật mới
+                    if TweenFa then
+                        TweenFa:Cancel()
+                        TweenFa = nil
+                    end
                 end
 
                 if not currentCharacter or not currentRootPart then
@@ -1891,6 +1907,11 @@ local function startFarmLoop()
                     if player.Character ~= currentCharacter or currentCharacter ~= player.Character then
                         currentCharacter = player.Character
                         currentRootPart = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
+
+                        if TweenFa then
+                            TweenFa:Cancel()
+                            TweenFa = nil
+                        end
                     end
 
                     if not currentCharacter or not currentRootPart then

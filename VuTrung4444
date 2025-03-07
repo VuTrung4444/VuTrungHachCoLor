@@ -1665,22 +1665,16 @@ end)
 
 --AuraArrow[NoLag]--
 --AuraArrow[NoLag]--
-local lastToggleState = false
 local lastCharacter = nil
 local lastRootPart = nil
 
 spawn(function()
     while task.wait() do
         if getgenv().AllArrow then
-            if not lastToggleState or (plr.Character ~= lastCharacter) then
-                lastToggleState = true
-                lastCharacter = plr.Character
-                lastRootPart = lastCharacter and lastCharacter:FindFirstChild("HumanoidRootPart")
-            end
+            local player = game.Players.LocalPlayer
 
-            -- Nếu nhân vật mới hồi sinh, cập nhật lại luôn
-            if plr.Character ~= lastCharacter then
-                lastCharacter = plr.Character
+            if player.Character ~= lastCharacter then
+                lastCharacter = player.Character
                 lastRootPart = lastCharacter and lastCharacter:FindFirstChild("HumanoidRootPart")
             end
 
@@ -1708,9 +1702,7 @@ spawn(function()
 
                 while v and v.Parent and getgenv().AllArrow do
                     local humanoid = v:FindFirstChildOfClass("Humanoid")
-                    if not humanoid or humanoid.Health <= 0 then
-                        break
-                    end
+                    if not humanoid or humanoid.Health <= 0 then break end
 
                     if modelCFrame then
                         game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
@@ -1733,8 +1725,6 @@ spawn(function()
                     if not v.Parent then break end
                 end
             end
-        else
-            lastToggleState = false
         end
     end
 end)
@@ -1821,26 +1811,27 @@ local function startFarmLoop()
     end
 
     FarmLoop = task.spawn(function()
-        local bossCount = #AllowedBosses
-
         local player = game.Players.LocalPlayer
         local currentCharacter = player.Character
         local currentRootPart = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
 
-        local function waitForCharacter()
-            while not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") do
-                player.CharacterAdded:Wait()
-                task.wait(1)
-            end
+        local function updateCharacter()
             currentCharacter = player.Character
-            currentRootPart = currentCharacter:FindFirstChild("HumanoidRootPart")
+            currentRootPart = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
         end
 
+        updateCharacter()
+
         while getgenv().Farm do
-            waitForCharacter()
+            if not player.Character or player.Character ~= currentCharacter then
+                updateCharacter()
+                VisitedBosses = {}  -- Reset vòng lặp khi chết
+                UpdateActiveBossLocations()
+            end
+
             UpdateActiveBossLocations()
 
-            if bossCount == 0 then
+            if #AllowedBosses == 0 then
                 task.wait(1)
                 continue
             end
@@ -1853,7 +1844,7 @@ local function startFarmLoop()
             end
 
             if #candidateBosses == 0 then
-                VisitedBosses = {} -- Reset khi đã thăm hết
+                VisitedBosses = {}
                 candidateBosses = ActiveBossLocations
             end
 
@@ -1873,48 +1864,22 @@ local function startFarmLoop()
 
             repeat
                 task.wait()
-
-                -- Luôn cập nhật nhân vật mới nhất sau mỗi frame
-                if player.Character ~= currentCharacter or currentCharacter ~= player.Character then
-                    currentCharacter = player.Character
-                    currentRootPart = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
-
-                    -- Hủy tween cũ ngay khi có nhân vật mới
-                    if TweenFa then
-                        TweenFa:Cancel()
-                        TweenFa = nil
-                    end
-                end
-
-                if not currentCharacter or not currentRootPart then
-                    if TweenFa then
-                        TweenFa:Cancel()
-                        TweenFa = nil
-                    end
+                if not currentCharacter or player.Character ~= currentCharacter then
+                    updateCharacter()
+                    if TweenFa then TweenFa:Cancel() end
                     break
                 end
             until not getgenv().Farm or GetDistance(bossCFrame) < 20
 
             if not getgenv().Farm then break end
-            if TweenFa then
-                TweenFa:Cancel()
-                TweenFa = nil
-            end
+            if TweenFa then TweenFa:Cancel() end
 
             local bossEntity = getclosest({boss.Name}, game:GetService("Workspace").Mobs)
             if bossEntity and bossEntity:FindFirstChild("Humanoid") then
                 while getgenv().Farm and bossEntity.Parent and bossEntity.Humanoid.Health > 0 do
-                    if player.Character ~= currentCharacter or currentCharacter ~= player.Character then
-                        currentCharacter = player.Character
-                        currentRootPart = currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart")
-
-                        if TweenFa then
-                            TweenFa:Cancel()
-                            TweenFa = nil
-                        end
-                    end
-
-                    if not currentCharacter or not currentRootPart then
+                    if not currentCharacter or player.Character ~= currentCharacter then
+                        updateCharacter()
+                        if TweenFa then TweenFa:Cancel() end
                         break
                     end
                     task.wait()

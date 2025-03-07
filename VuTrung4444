@@ -1666,75 +1666,90 @@ end)
 --AuraArrow[NoLag]--
 --AuraArrow[NoLag]--
 
-local lastToggleState = false
 local lastCharacter = nil
 local currentTarget = nil
-local targetStartTime = nil
+local lastAttackTime = 0
 
 local function resetTarget()
     currentTarget = nil
-    targetStartTime = nil
+    lastAttackTime = 0
 end
 
-local function resetCharacterAndTarget()
+local function refreshCharacter()
     lastCharacter = plr.Character
     resetTarget()
-end
-
-local function getNewTarget()
-    task.wait(0.2)  -- Giảm tải bộ nhớ khi tìm target mới
-    local parentFolder = game:GetService("Workspace").Mobs
-    return getclosestSkills(parentFolder)
 end
 
 spawn(function()
     while task.wait() do
         if getgenv().AllArrow then
-            if not lastToggleState or (plr.Character ~= lastCharacter) then
-                lastToggleState = true
-                resetCharacterAndTarget()
+            if not lastCharacter or (plr.Character ~= lastCharacter) then
+                refreshCharacter()
             end
 
             if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local parentFolder = game:GetService("Workspace").Mobs
+
                 if not currentTarget or not currentTarget.Parent then
-                    currentTarget = getNewTarget()
-                    targetStartTime = tick()
+                    resetTarget()
+                    task.wait(0.2)  -- Giảm tải như chồng yêu cầu
+                    currentTarget = getclosestSkills(parentFolder)
                 end
 
-                if currentTarget then
-                    local modelCFrame = nil
-                    if currentTarget.GetModelCFrame and type(currentTarget.GetModelCFrame) == "function" then
-                        modelCFrame = currentTarget:GetModelCFrame()
-                    end
+                local modelCFrame = nil
+                if currentTarget and currentTarget.GetModelCFrame and type(currentTarget.GetModelCFrame) == "function" then
+                    modelCFrame = currentTarget:GetModelCFrame()
+                end
 
-                    if modelCFrame then
-                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                            "arrow_knock_back_damage",
-                            plr.Character,
-                            modelCFrame,
-                            currentTarget,
-                            200,
-                            200
-                        )
-                    end
-
-                    local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
-                    if not humanoid or humanoid.Health <= 0 or not currentTarget.Parent then
-                        resetTarget()
-                    elseif tick() - targetStartTime > 5 then
-                        resetTarget()  -- Quá 5s đổi mục tiêu
-                    end
-                else
+                if not modelCFrame then
                     resetTarget()
+                    continue
+                end
+
+                while currentTarget and currentTarget.Parent and getgenv().Arrow do
+                    local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
+                    if not humanoid or humanoid.Health <= 0 then
+                        resetTarget()
+                        break
+                    end
+
+                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                        "arrow_knock_back_damage",
+                        plr.Character,
+                        modelCFrame,
+                        currentTarget,
+                        200,
+                        200
+                    )
+
+                    lastAttackTime = tick()
+
+                    task.wait(0.2)  -- Giữ nguyên nhịp bắn cũ của chồng
+
+                    if not currentTarget.Parent then
+                        resetTarget()
+                        break
+                    end
+
+                    if tick() - lastAttackTime >= 5 then
+                        resetTarget()  -- Đổi mục tiêu sau 5 giây chưa xong
+                        break
+                    end
+
+                    if currentTarget and currentTarget.GetModelCFrame and type(currentTarget.GetModelCFrame) == "function" then
+                        modelCFrame = currentTarget:GetModelCFrame()
+                    else
+                        resetTarget()
+                        break
+                    end
                 end
             end
         else
-            lastToggleState = false
+            lastCharacter = nil
             resetTarget()
         end
     end
 end)
-
 
 
 --// NoClip \\--

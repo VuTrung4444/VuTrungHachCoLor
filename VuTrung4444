@@ -1382,7 +1382,6 @@ task.spawn(function()
 end)
 
 
---No Fog--
 MiscSection:AddToggle({
     Name = "No Fog",
     Flag = "NF",
@@ -1395,11 +1394,31 @@ MiscSection:AddToggle({
                 end
             end
             game:GetService("Lighting").FogEnd = 1000000
-            elseif v == false then
+
+            if not getgenv().DisableDamageTextConnection then
+                getgenv().DisableDamageTextConnection = game:GetService("RunService").Stepped:Connect(function()
+                    local damageFolder = workspace:FindFirstChild("Debree") and workspace.Debree:FindFirstChild("Damage_Folder")
+                    if damageFolder then
+                        for _, dmgText in pairs(damageFolder:GetChildren()) do
+                            if dmgText:IsA("Part") then
+                                dmgText:Destroy()
+                            end
+                        end
+                    end
+                end)
+            end
+
+        elseif v == false then
             print("1")
+
+            if getgenv().DisableDamageTextConnection then
+                getgenv().DisableDamageTextConnection:Disconnect()
+                getgenv().DisableDamageTextConnection = nil
+            end
         end
     end
 })
+
 
 --// Inf iFrames \\--
 spawn(function()

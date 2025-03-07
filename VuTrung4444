@@ -1673,8 +1673,14 @@ local function clearTarget()
 end
 
 local function getNewTarget()
-    clearTarget()
     return getclosestSkills(game:GetService("Workspace").Mobs)
+end
+
+local function updateCharacter()
+    if plr.Character ~= lastCharacter then
+        lastCharacter = plr.Character
+        clearTarget()  -- Reset target khi nhân vật mới xuất hiện
+    end
 end
 
 spawn(function()
@@ -1684,54 +1690,32 @@ spawn(function()
             continue
         end
 
-        if plr.Character ~= lastCharacter then
-            lastCharacter = plr.Character
-            clearTarget()  -- Khi nhân vật mới xuất hiện, xóa target cũ
-        end
+        updateCharacter()
 
         if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
             clearTarget()
             continue
         end
 
-        if not currentTarget then
+        -- Không có target hoặc target cũ bay màu thì lấy mới
+        if not currentTarget or not currentTarget.Parent or (currentTarget:FindFirstChildOfClass("Humanoid") and currentTarget.Humanoid.Health <= 0) then
             currentTarget = getNewTarget()
         end
 
-        if currentTarget then
+        if currentTarget and currentTarget:GetModelCFrame() then
             local modelCFrame = currentTarget:GetModelCFrame()
 
-            while getgenv().AllArrow and currentTarget and currentTarget.Parent do
-                local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
-
-                if not humanoid or humanoid.Health <= 0 or not currentTarget.Parent then
-                    currentTarget = getNewTarget()
-                    break
-                end
-
-                if modelCFrame and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                        "arrow_knock_back_damage",
-                        plr.Character,
-                        modelCFrame,
-                        currentTarget,
-                        200,
-                        200
-                    )
-                end
-
-                task.wait(0.2)
-
-                if currentTarget and currentTarget.GetModelCFrame then
-                    modelCFrame = currentTarget:GetModelCFrame()
-                else
-                    currentTarget = getNewTarget()
-                    break
-                end
-            end
-        else
-            task.wait(0.2)
+            game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                "arrow_knock_back_damage",
+                plr.Character,
+                modelCFrame,
+                currentTarget,
+                200,
+                200
+            )
         end
+
+        task.wait(0.2)  -- Chỉnh delay nếu cần để mượt mà
     end
 end)
 

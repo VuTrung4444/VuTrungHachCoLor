@@ -1679,7 +1679,7 @@ spawn(function()
                 local parentFolder = game:GetService("Workspace").Mobs
                 local v = getclosestSkills(parentFolder)
 
-                while not v and getgenv().Arrow do
+                while not v and getgenv().AllArrow do
                     task.wait(0.5)
                     v = getclosestSkills(parentFolder)
                 end
@@ -1689,7 +1689,7 @@ spawn(function()
                     modelCFrame = v:GetModelCFrame()
                 end
 
-                while not modelCFrame and getgenv().Arrow do
+                while not modelCFrame and getgenv().AllArrow do
                     task.wait(0.01)
                     if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
                         modelCFrame = v:GetModelCFrame()
@@ -1697,7 +1697,7 @@ spawn(function()
                     if not v then break end
                 end
 
-                while v and v.Parent and getgenv().Arrow do
+                while v and v.Parent and getgenv().AllArrow do
                     local humanoid = v:FindFirstChildOfClass("Humanoid")
                     if not humanoid or humanoid.Health <= 0 then
                         break

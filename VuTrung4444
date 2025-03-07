@@ -1604,27 +1604,24 @@ local function attackLoop()
             end
 
             local parentFolder = game:GetService("Workspace").Mobs
+            local v, modelCFrame
 
-            local v = getclosestSkills(parentFolder)
-            while getgenv().Arrow and not v do
-                task.wait(0.5)
+            repeat
                 v = getclosestSkills(parentFolder)
-            end
-
-            while getgenv().Arrow and v do
-                local humanoid = v:FindFirstChildOfClass("Humanoid")
-                if not humanoid or humanoid.Health <= 0 then
-                    break
+                if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                    modelCFrame = v:GetModelCFrame()
+                else
+                    modelCFrame = nil
                 end
+                task.wait(0.2)
+            until (v and modelCFrame) or not getgenv().Arrow
 
-                local modelCFrame = nil
+            while getgenv().Arrow and v and v.Parent and plr.Character do
+                local humanoid = v:FindFirstChildOfClass("Humanoid")
+                if not humanoid or humanoid.Health <= 0 then break end
+
                 if v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
                     modelCFrame = v:GetModelCFrame()
-                end
-
-                if not modelCFrame then
-                    task.wait(0.01)
-                    continue
                 end
 
                 game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
@@ -1635,21 +1632,29 @@ local function attackLoop()
                     200,
                     200
                 )
-
                 task.wait(0.275)
 
-                v = getclosestSkills(parentFolder)  -- Cập nhật target liên tục
+                if not v.Parent then break end
             end
         end
     end)
 end
 
-local function startOrRestartLoop()
-    resetState()
-    if getgenv().Arrow then
-        attackLoop()
+spawn(function()
+    while task.wait() do
+        if getgenv().Arrow then
+            if plr.Character ~= lastCharacter then
+                resetState()
+                attackLoop()
+            elseif not arrowLoop then
+                attackLoop()
+            end
+        else
+            resetState()
+        end
     end
-end
+end)
+
 
 spawn(function()
     while task.wait() do

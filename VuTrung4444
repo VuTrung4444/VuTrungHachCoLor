@@ -1667,69 +1667,72 @@ end)
 --AuraArrow[NoLag]--
 local lastToggleState = false
 local lastCharacter = nil
-local activeTarget = nil  -- Biến lưu mục tiêu hiện tại
+local currentTarget = nil
+
+local function clearTarget()
+    currentTarget = nil
+end
+
+local function getNewTarget()
+    clearTarget()
+    return getclosestSkills(game:GetService("Workspace").Mobs)
+end
 
 spawn(function()
     while task.wait() do
         if getgenv().AllArrow then
-            local currentCharacter = plr.Character
-
-            -- Nếu nhân vật thay đổi (tức là reset), cập nhật nhân vật mới và reset target
-            if currentCharacter ~= lastCharacter then
-                lastCharacter = currentCharacter
-                activeTarget = nil
+            if not lastToggleState or (plr.Character ~= lastCharacter) then
+                lastToggleState = true
+                lastCharacter = plr.Character
+                clearTarget() -- Reset target khi có nhân vật mới
             end
 
-            if currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart") then
-                local parentFolder = game:GetService("Workspace").Mobs
-
-                -- Nếu không có target hiện tại hoặc target cũ bay màu thì tìm mới
-                if not activeTarget or not activeTarget.Parent or (activeTarget:FindFirstChildOfClass("Humanoid") and activeTarget.Humanoid.Health <= 0) then
-                    activeTarget = getclosestSkills(parentFolder)
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                if not currentTarget then
+                    currentTarget = getNewTarget()
                 end
 
-                while not activeTarget and getgenv().AllArrow do
-                    task.wait(0.2)
-                    activeTarget = getclosestSkills(parentFolder)
-                end
+                if currentTarget then
+                    local modelCFrame = currentTarget:GetModelCFrame()
 
-                local modelCFrame = nil
-                if activeTarget and activeTarget.GetModelCFrame and type(activeTarget.GetModelCFrame) == "function" then
-                    modelCFrame = activeTarget:GetModelCFrame()
-                end
+                    while getgenv().AllArrow and currentTarget and currentTarget.Parent do
+                        local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
 
-                while activeTarget and activeTarget.Parent and getgenv().AllArrow do
-                    local humanoid = activeTarget:FindFirstChildOfClass("Humanoid")
-                    if not humanoid or humanoid.Health <= 0 then
-                        break
-                    end
+                        if not humanoid or humanoid.Health <= 0 or not currentTarget.Parent then
+                            currentTarget = getNewTarget()
+                            break
+                        end
 
-                    if modelCFrame then
-                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                            "arrow_knock_back_damage",
-                            plr.Character,
-                            modelCFrame,
-                            activeTarget,
-                            200,
-                            200
-                        )
+                        if modelCFrame and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                            game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                                "arrow_knock_back_damage",
+                                plr.Character,
+                                modelCFrame,
+                                currentTarget,
+                                200,
+                                200
+                            )
+                        end
+
                         task.wait(0.2)
-                    end
 
-                    if activeTarget and activeTarget.GetModelCFrame and type(activeTarget.GetModelCFrame) == "function" then
-                        modelCFrame = activeTarget:GetModelCFrame()
-                    else
-                        break
+                        if currentTarget and currentTarget:GetModelCFrame then
+                            modelCFrame = currentTarget:GetModelCFrame()
+                        else
+                            currentTarget = getNewTarget()
+                            break
+                        end
                     end
+                else
+                    task.wait(0.2)
                 end
             end
         else
             lastToggleState = false
-            activeTarget = nil  -- Tắt thì clear target luôn cho sạch
+            clearTarget()
         end
     end
 end)
-
 
 --// NoClip \\--
 local antifallActive = false 

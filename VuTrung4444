@@ -1546,6 +1546,11 @@ end
 spawn(function()
     while task.wait(0.1) do
         if getgenv().AllArrow then
+            if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+                resetTarget()
+                continue
+            end
+
             if plr.Character ~= lastCharacter then
                 lastCharacter = plr.Character
                 resetTarget()
@@ -1559,21 +1564,22 @@ spawn(function()
 
             if currentTarget and currentTarget.Parent then
                 local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
-                if humanoid and humanoid.Health > 0 then
+                if not humanoid or humanoid.Health <= 0 then
+                    resetTarget()  -- Quái chết là next ngay
+                else
                     attackTarget(currentTarget)
                     task.wait(0.2)  -- Giữ nhịp dame
-                else
-                    resetTarget()  -- Quái chết là next
                 end
             else
-                resetTarget()  -- Mất quái thì next
+                resetTarget()  -- Mất quái thì tìm mới
             end
         else
-            resetTarget()  -- Tắt toggle thì reset
+            resetTarget()  -- Tắt toggle thì reset luôn
         end
     end
 end)
 
+    
 
 function getClosestPlayer(selectedPlayerName)
     local closestPlayer = nil
@@ -1717,37 +1723,6 @@ spawn(function()
     end
 end)
 
-
-spawn(function()
-    while task.wait() do
-        if getgenv().AllArrow then
-            if plr.Character ~= lastCharacter then
-                resetCharacterAndTarget()
-            end
-
-            if not currentTarget or not currentTarget.Parent or shouldChangeTarget() then
-                currentTarget = getNewTarget()
-                targetStartTime = tick()
-            end
-
-            if currentTarget then
-                local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
-                if not humanoid or humanoid.Health <= 0 then
-                    currentTarget = nil
-                    continue
-                end
-
-                if attackTarget(currentTarget) then
-                    task.wait(attackDelay)
-                end
-            else
-                task.wait(findTargetDelay)
-            end
-        else
-            resetCharacterAndTarget()
-        end
-    end
-end)
 
 
 --// NoClip \\--

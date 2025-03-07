@@ -1611,22 +1611,16 @@ function attackLoop()
                 v = getclosestSkills(parentFolder)
             end
 
-            local modelCFrame = nil
-            if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-                modelCFrame = v:GetModelCFrame()
-            end
-
-            while not modelCFrame and getgenv().Arrow do
-                task.wait(0.2)
-                if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+            while v and getgenv().Arrow do
+                local modelCFrame = nil
+                if v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
                     modelCFrame = v:GetModelCFrame()
                 end
-                if not v then
+
+                if not modelCFrame then
                     break
                 end
-            end
 
-            if modelCFrame then
                 game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
                     "arrow_knock_back_damage",
                     plr.Character,
@@ -1635,7 +1629,14 @@ function attackLoop()
                     200,
                     200
                 )
+
                 task.wait(0.275)
+
+                if not v.Parent or (v:FindFirstChild("Humanoid") and v.Humanoid.Health <= 0) then
+                    break
+                end
+
+                v = getclosestSkills(parentFolder)
             end
         end
     end)
@@ -1859,6 +1860,12 @@ end)
 --AutoBoss--
 local FarmLoop = nil
 local VisitedBosses = {}
+local CurrentBossIndex = 1
+
+local function resetFarmState()
+    VisitedBosses = {}
+    CurrentBossIndex = 1
+end
 
 local function startFarmLoop()
     if FarmLoop then
@@ -1866,7 +1873,6 @@ local function startFarmLoop()
     end
 
     FarmLoop = task.spawn(function()
-        local bossCount = #AllowedBosses
         local function waitForCharacter()
             local player = game.Players.LocalPlayer
             while not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") do
@@ -1879,36 +1885,33 @@ local function startFarmLoop()
             waitForCharacter()
             UpdateActiveBossLocations()
 
-            if bossCount == 0 then
+            if #AllowedBosses == 0 then
                 task.wait(1)
                 continue
             end
 
-            local candidateBosses = {}
+            if CurrentBossIndex > #AllowedBosses then
+                resetFarmState()  -- Khi hết lượt, reset để đi lại từ đầu
+            end
+
+            local targetBossName = AllowedBosses[CurrentBossIndex]
+            local targetBoss = nil
+
             for _, boss in pairs(ActiveBossLocations) do
-                if not VisitedBosses[boss.Name] then
-                    table.insert(candidateBosses, boss)
+                if boss.Name == targetBossName then
+                    targetBoss = boss
+                    break
                 end
             end
 
-            if #candidateBosses == 0 then
-                VisitedBosses = {} -- Reset khi đã thăm hết
-                candidateBosses = ActiveBossLocations
-            end
-
-            table.sort(candidateBosses, function(a, b)
-                return GetDistance(a.Position) < GetDistance(b.Position)
-            end)
-
-            local boss = candidateBosses[1]
-            if not boss then
+            if not targetBoss then
                 task.wait(1)
                 continue
             end
 
-            local bossCFrame = CFrame.new(boss.Position)
+            local bossCFrame = CFrame.new(targetBoss.Position)
             local TweenFa = Tween(bossCFrame)
-		AtBoss = false
+            AtBoss = false
 
             repeat
                 task.wait()
@@ -1927,7 +1930,7 @@ local function startFarmLoop()
                 TweenFa = nil
             end
 
-            local bossEntity = getclosest({boss.Name}, game:GetService("Workspace").Mobs)
+            local bossEntity = getclosest({targetBossName}, game:GetService("Workspace").Mobs)
             if bossEntity and bossEntity:FindFirstChild("Humanoid") then
                 while getgenv().Farm and bossEntity.Parent and bossEntity.Humanoid.Health > 0 do
                     if not game.Players.LocalPlayer.Character then
@@ -1949,20 +1952,23 @@ local function startFarmLoop()
                 task.wait(1)
             end
 
-            VisitedBosses[boss.Name] = true
-	UpdateActiveBossLocations()
+            VisitedBosses[targetBossName] = true
+            CurrentBossIndex = CurrentBossIndex + 1
+            UpdateActiveBossLocations()
         end
     end)
 end
 
 game.Players.LocalPlayer.CharacterAdded:Connect(function()
     if getgenv().Farm then
+        resetFarmState()
         startFarmLoop()
     end
 end)
 
 game:GetService("RunService").Heartbeat:Connect(function()
     if getgenv().Farm and not FarmLoop then
+        resetFarmState()
         startFarmLoop()
     elseif not getgenv().Farm and FarmLoop then
         task.cancel(FarmLoop)
@@ -1970,8 +1976,8 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end
 end)
 
-
 --MoveAround--
+            
 local MoveLoop = nil
 local VisitedBosses = {}
 

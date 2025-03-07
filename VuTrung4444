@@ -1565,20 +1565,19 @@ spawn(function()
             if currentTarget and currentTarget.Parent then
                 local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
                 if not humanoid or humanoid.Health <= 0 then
-                    resetTarget()  -- Quái chết là next ngay
+                    resetTarget()
                 else
                     attackTarget(currentTarget)
-                    task.wait(0.2)  -- Giữ nhịp dame
+                    task.wait(0.2)  -- Tốc độ gây dame
                 end
             else
-                resetTarget()  -- Mất quái thì tìm mới
+                resetTarget()
             end
         else
-            resetTarget()  -- Tắt toggle thì reset luôn
+            resetTarget()
         end
     end
 end)
-
     
 
 function getClosestPlayer(selectedPlayerName)

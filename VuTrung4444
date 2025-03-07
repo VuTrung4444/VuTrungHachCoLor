@@ -1518,79 +1518,62 @@ function getclosestSkills(parentFolder)
     return closestEntity
 end
 
-local function resetAll()
+local function resetTarget()
     currentTarget = nil
     targetTimer = nil
-    lastCharacter = plr.Character
 end
 
 local function attackTarget(target)
-    if not target or not target.Parent then return false end
+    currentTarget = target
+    targetTimer = tick()
 
-    local modelCFrame = target.GetModelCFrame and target:GetModelCFrame()
-    if not modelCFrame then return false end
+    while task.wait(0.2) and getgenv().AllArrow and target and target.Parent do
+        local humanoid = target:FindFirstChildOfClass("Humanoid")
+        if not humanoid or humanoid.Health <= 0 then
+            resetTarget()
+            break
+        end
 
-    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-        "arrow_knock_back_damage",
-        plr.Character,
-        modelCFrame,
-        target,
-        200,
-        200
-    )
-    return true
+        local modelCFrame = target:GetModelCFrame()
+        if modelCFrame then
+            game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                "arrow_knock_back_damage",
+                plr.Character,
+                modelCFrame,
+                target,
+                200,
+                200
+            )
+        end
+
+        if tick() - targetTimer >= 5 then
+            resetTarget()
+            break
+        end
+    end
 end
 
 spawn(function()
-    resetAll()
-
-    while task.wait(0.2) do
-        if not getgenv().AllArrow then
-            resetAll()
-            continue
-        end
-
-        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
-            resetAll()
-            continue
-        end
-
-        if lastCharacter ~= plr.Character then
-            resetAll()
-        end
-
-        if not currentTarget or not currentTarget.Parent then
-            currentTarget = getclosestSkills(game:GetService("Workspace").Mobs)
-            targetTimer = tick()
-        end
-
-        if currentTarget and currentTarget.Parent then
-            local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
-            if not humanoid or humanoid.Health <= 0 then
-                currentTarget = nil
-                targetTimer = nil
-                continue
+    while task.wait() do
+        if getgenv().AllArrow then
+            if plr.Character ~= lastCharacter then
+                lastCharacter = plr.Character
+                resetTarget()
             end
 
-            local success = attackTarget(currentTarget)
-            if not success then
-                currentTarget = nil
-                targetTimer = nil
+            if not currentTarget or not currentTarget.Parent then
+                task.wait(0.2)
+                local parentFolder = game:GetService("Workspace").Mobs
+                currentTarget = getclosestSkills(parentFolder)
             end
 
-            if tick() - targetTimer >= 5 then
-                currentTarget = nil
-                targetTimer = nil
+            if currentTarget then
+                attackTarget(currentTarget)
             end
         else
-            task.wait(0.5)  -- Chờ 0.5s trước khi tìm target mới để giảm tải
+            resetTarget()
+            lastCharacter = nil
         end
-    end
-end)
-
-plr.CharacterAdded:Connect(function()
-    if getgenv().AllArrow then
-        resetAll()
     end
 end)
 

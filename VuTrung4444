@@ -1501,11 +1501,7 @@ end
 
 local function attackTarget(target)
     if target and target.Parent and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-        local modelCFrame = nil
-        if target.GetModelCFrame and type(target.GetModelCFrame) == "function" then
-            modelCFrame = target:GetModelCFrame()
-        end
-
+        local modelCFrame = target.GetModelCFrame and target:GetModelCFrame()
         if modelCFrame then
             game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
                 "arrow_knock_back_damage",
@@ -1522,10 +1518,13 @@ end
 local function getclosestSkills(parentFolder)
     local closestEntity = nil
     local closestDistance = math.huge
-    local playerPosition = plr.Character.HumanoidRootPart.Position
-    local entities = parentFolder:GetDescendants()
+    local playerPosition = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character.HumanoidRootPart.Position
 
-    for _, entity in ipairs(entities) do
+    if not playerPosition then
+        return nil
+    end
+
+    for _, entity in ipairs(parentFolder:GetChildren()) do
         if entity:IsA("Model") then
             local humanoid = entity:FindFirstChild("Humanoid")
             if humanoid and humanoid.Health > 0 then
@@ -1545,39 +1544,36 @@ local function getclosestSkills(parentFolder)
 end
 
 spawn(function()
-    while task.wait() do
+    while task.wait(0.1) do
         if getgenv().AllArrow then
             if plr.Character ~= lastCharacter then
                 lastCharacter = plr.Character
-                resetTarget() -- Reset khi hồi sinh
+                resetTarget()
             end
 
-            if not currentTarget or not currentTarget.Parent then
-                resetTarget()
-                local parentFolder = game:GetService("Workspace").Mobs
-                currentTarget = getclosestSkills(parentFolder)
+            local parentFolder = game:GetService("Workspace").Mobs
 
-                while not currentTarget and getgenv().Arrow do
-                    task.wait(0.2)
-                    currentTarget = getclosestSkills(parentFolder)
-                end
+            if not currentTarget or not currentTarget.Parent then
+                currentTarget = getclosestSkills(parentFolder)
             end
 
             if currentTarget and currentTarget.Parent then
                 local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
-                if humanoid and humanoid.Health <= 0 then
-                    resetTarget() -- Mob chết thì đổi ngay
-                else
+                if humanoid and humanoid.Health > 0 then
                     attackTarget(currentTarget)
+                    task.wait(0.2)  -- Giữ nhịp dame
+                else
+                    resetTarget()  -- Quái chết là next
                 end
+            else
+                resetTarget()  -- Mất quái thì next
             end
-
-            task.wait(0.2) -- Nhịp dame giữ nguyên
         else
-            resetTarget() -- Tắt là reset
+            resetTarget()  -- Tắt toggle thì reset
         end
     end
 end)
+
 
 function getClosestPlayer(selectedPlayerName)
     local closestPlayer = nil

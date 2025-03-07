@@ -1664,96 +1664,72 @@ spawn(function()
 end)
 
 --AuraArrow[NoLag]--
--- AuraArrow [Optimized + Character Update + Fail-safe] --
+--AuraArrow[NoLag]--
+local lastToggleState = false
 local lastCharacter = nil
-local lastRootPart = nil
-
-local function updateCharacter()
-    local player = game.Players.LocalPlayer
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        lastCharacter = player.Character
-        lastRootPart = player.Character.HumanoidRootPart
-    else
-        lastCharacter = nil
-        lastRootPart = nil
-    end
-end
-
-local function ensureCharacter()
-    while not lastCharacter or not lastRootPart do
-        updateCharacter()
-        task.wait(0.5)
-    end
-end
+local activeTarget = nil  -- Biến lưu mục tiêu hiện tại
 
 spawn(function()
     while task.wait() do
         if getgenv().AllArrow then
-            ensureCharacter()  -- Đảm bảo luôn có nhân vật mới
+            local currentCharacter = plr.Character
 
-            local parentFolder = game:GetService("Workspace").Mobs
-            local v = getclosestSkills(parentFolder)
-
-            local searchTimeout = os.clock() + 5  -- Thêm timeout tối đa 5 giây tìm quái
-            while not v and getgenv().AllArrow do
-                task.wait(0.2)
-                v = getclosestSkills(parentFolder)
-                if os.clock() > searchTimeout then break end  -- Thoát nếu tìm quá lâu
+            -- Nếu nhân vật thay đổi (tức là reset), cập nhật nhân vật mới và reset target
+            if currentCharacter ~= lastCharacter then
+                lastCharacter = currentCharacter
+                activeTarget = nil
             end
 
-            if not v then continue end
+            if currentCharacter and currentCharacter:FindFirstChild("HumanoidRootPart") then
+                local parentFolder = game:GetService("Workspace").Mobs
 
-            local function getValidModelCFrame(target)
-                if target and target.Parent and target.GetModelCFrame and type(target.GetModelCFrame) == "function" then
-                    return target:GetModelCFrame()
-                end
-                return nil
-            end
-
-            local modelCFrame = getValidModelCFrame(v)
-
-            local modelTimeout = os.clock() + 3  -- Thêm timeout tối đa 3 giây lấy CFrame
-            while not modelCFrame and getgenv().AllArrow do
-                task.wait(0.05)
-                modelCFrame = getValidModelCFrame(v)
-                if os.clock() > modelTimeout then break end  -- Nếu lâu quá thì bỏ qua
-                if not v.Parent then break end
-            end
-
-            while v and v.Parent and getgenv().AllArrow do
-                ensureCharacter()  -- Trong khi bắn vẫn theo dõi nhân vật mới
-
-                local humanoid = v:FindFirstChildOfClass("Humanoid")
-                if not humanoid or humanoid.Health <= 0 then break end
-
-                if modelCFrame then
-                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                        "arrow_knock_back_damage",
-                        lastCharacter,
-                        modelCFrame,
-                        v,
-                        200,
-                        200
-                    )
-                    task.wait(0.15)  -- Giảm delay giữa các phát để bắn nhanh hơn
+                -- Nếu không có target hiện tại hoặc target cũ bay màu thì tìm mới
+                if not activeTarget or not activeTarget.Parent or (activeTarget:FindFirstChildOfClass("Humanoid") and activeTarget.Humanoid.Health <= 0) then
+                    activeTarget = getclosestSkills(parentFolder)
                 end
 
-                modelCFrame = getValidModelCFrame(v)  -- Luôn cập nhật mới nhất
-                if not v.Parent then break end
+                while not activeTarget and getgenv().AllArrow do
+                    task.wait(0.2)
+                    activeTarget = getclosestSkills(parentFolder)
+                end
+
+                local modelCFrame = nil
+                if activeTarget and activeTarget.GetModelCFrame and type(activeTarget.GetModelCFrame) == "function" then
+                    modelCFrame = activeTarget:GetModelCFrame()
+                end
+
+                while activeTarget and activeTarget.Parent and getgenv().AllArrow do
+                    local humanoid = activeTarget:FindFirstChildOfClass("Humanoid")
+                    if not humanoid or humanoid.Health <= 0 then
+                        break
+                    end
+
+                    if modelCFrame then
+                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                            "arrow_knock_back_damage",
+                            plr.Character,
+                            modelCFrame,
+                            activeTarget,
+                            200,
+                            200
+                        )
+                        task.wait(0.2)
+                    end
+
+                    if activeTarget and activeTarget.GetModelCFrame and type(activeTarget.GetModelCFrame) == "function" then
+                        modelCFrame = activeTarget:GetModelCFrame()
+                    else
+                        break
+                    end
+                end
             end
         else
-            lastCharacter = nil  -- Reset khi tắt toggle
-            lastRootPart = nil
+            lastToggleState = false
+            activeTarget = nil  -- Tắt thì clear target luôn cho sạch
         end
     end
 end)
 
-game.Players.LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1)  -- Cho nhân vật load xong rồi mới cập nhật
-    updateCharacter()
-end)
-
-updateCharacter()  -- Khởi động lần đầu
 
 --// NoClip \\--
 local antifallActive = false 

@@ -1584,35 +1584,35 @@ end
 
 --// Arrow Kill Aura \\--
 local plr = game.Players.LocalPlayer
-local lastCharacter = nil
-local arrowLoop = nil
+local arrow275Loop = nil
 
-local function resetState()
-    if arrowLoop then
-        task.cancel(arrowLoop)
-        arrowLoop = nil
+function resetArrow275()
+    if arrow275Loop then
+        task.cancel(arrow275Loop)
+        arrow275Loop = nil
     end
 end
 
-local function startArrowAttack()
-    arrowLoop = task.spawn(function()
+function startArrow275Loop()
+    resetArrow275()  -- Reset sạch trước khi chạy mới
+    arrow275Loop = task.spawn(function()
         while getgenv().Arrow do
             if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 local parentFolder = game:GetService("Workspace").Mobs
                 local v = getclosestSkills(parentFolder)
 
-                while not v do
+                while not v and getgenv().Arrow do
                     task.wait(0.5)
                     v = getclosestSkills(parentFolder)
                 end
 
                 local modelCFrame = nil
-                if v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
                     modelCFrame = v:GetModelCFrame()
                 end
 
-                while not modelCFrame do
-                    task.wait(0.2)
+                while not modelCFrame and getgenv().Arrow do
+                    task.wait(0.01)
                     if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
                         modelCFrame = v:GetModelCFrame()
                     end
@@ -1633,25 +1633,24 @@ local function startArrowAttack()
                     task.wait(0.275)
                 end
             end
+            task.wait() -- tránh full load CPU
         end
+        resetArrow275()  -- Tự reset khi loop kết thúc
     end)
 end
 
 spawn(function()
     while task.wait() do
         if getgenv().Arrow then
-            if plr.Character ~= lastCharacter then
-                resetState()
-                lastCharacter = plr.Character
-                startArrowAttack()
-            elseif not arrowLoop then
-                startArrowAttack()
+            if not arrow275Loop then
+                startArrow275Loop()
             end
         else
-            resetState()
+            resetArrow275()
         end
     end
 end)
+
 
 
 spawn(function()
@@ -1702,22 +1701,23 @@ end)
 local plr = game.Players.LocalPlayer
 local lastCharacter = nil
 local currentTarget = nil
-local arrowLoop = nil
+local arrowNoLagLoop = nil
 
-function resetState()
+function resetNoLagState()
     lastCharacter = nil
     currentTarget = nil
-    if arrowLoop then
-        task.cancel(arrowLoop)
-        arrowLoop = nil
+    if arrowNoLagLoop then
+        task.cancel(arrowNoLagLoop)
+        arrowNoLagLoop = nil
     end
 end
 
-function attackLoop()
-    arrowLoop = task.spawn(function()
+function startArrowNoLagLoop()
+    resetNoLagState()
+    arrowNoLagLoop = task.spawn(function()
         while getgenv().AllArrow do
             if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
-                resetState()
+                resetNoLagState()
                 break
             end
 
@@ -1749,7 +1749,7 @@ function attackLoop()
                         200,
                         200
                     )
-                    task.wait(0.3)
+                    task.wait(0.275)  -- Áp dụng delay từng phát bắn
                 end
 
                 if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
@@ -1758,11 +1758,14 @@ function attackLoop()
                     break
                 end
 
-                if not v.Parent then break end
+                if not v.Parent then
+                    break
+                end
             end
 
-            task.wait(0.2) -- chờ nhẹ giảm tải
+            task.wait(0.2)  -- Chờ nhẹ giảm tải giữa các target
         end
+        resetNoLagState()
     end)
 end
 
@@ -1770,14 +1773,14 @@ spawn(function()
     while task.wait() do
         if getgenv().AllArrow then
             if plr.Character ~= lastCharacter then
-                resetState()
+                resetNoLagState()
                 lastCharacter = plr.Character
-                attackLoop()
-            elseif not arrowLoop then
-                attackLoop()
+                startArrowNoLagLoop()
+            elseif not arrowNoLagLoop then
+                startArrowNoLagLoop()
             end
         else
-            resetState()
+            resetNoLagState()
         end
     end
 end)

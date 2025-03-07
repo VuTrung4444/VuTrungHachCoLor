@@ -1665,59 +1665,77 @@ end)
 
 --AuraArrow[NoLag]--
 --AuraArrow[NoLag]--
+
+local lastToggleState = false
 local lastCharacter = nil
 local currentTarget = nil
+local targetStartTime = nil
 
-local function clearTarget()
+local function resetTarget()
     currentTarget = nil
+    targetStartTime = nil
+end
+
+local function resetCharacterAndTarget()
+    lastCharacter = plr.Character
+    resetTarget()
 end
 
 local function getNewTarget()
-    return getclosestSkills(game:GetService("Workspace").Mobs)
-end
-
-local function updateCharacter()
-    if plr.Character ~= lastCharacter then
-        lastCharacter = plr.Character
-        clearTarget()  -- Reset target khi nhân vật mới xuất hiện
-    end
+    task.wait(0.2)  -- Giảm tải bộ nhớ khi tìm target mới
+    local parentFolder = game:GetService("Workspace").Mobs
+    return getclosestSkills(parentFolder)
 end
 
 spawn(function()
     while task.wait() do
-        if not getgenv().AllArrow then
-            clearTarget()
-            continue
+        if getgenv().AllArrow then
+            if not lastToggleState or (plr.Character ~= lastCharacter) then
+                lastToggleState = true
+                resetCharacterAndTarget()
+            end
+
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                if not currentTarget or not currentTarget.Parent then
+                    currentTarget = getNewTarget()
+                    targetStartTime = tick()
+                end
+
+                if currentTarget then
+                    local modelCFrame = nil
+                    if currentTarget.GetModelCFrame and type(currentTarget.GetModelCFrame) == "function" then
+                        modelCFrame = currentTarget:GetModelCFrame()
+                    end
+
+                    if modelCFrame then
+                        game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                            "arrow_knock_back_damage",
+                            plr.Character,
+                            modelCFrame,
+                            currentTarget,
+                            200,
+                            200
+                        )
+                    end
+
+                    local humanoid = currentTarget:FindFirstChildOfClass("Humanoid")
+                    if not humanoid or humanoid.Health <= 0 or not currentTarget.Parent then
+                        resetTarget()
+                    elseif tick() - targetStartTime > 5 then
+                        resetTarget()  -- Quá 5s đổi mục tiêu
+                    end
+                else
+                    resetTarget()
+                end
+            end
+        else
+            lastToggleState = false
+            resetTarget()
         end
-
-        updateCharacter()
-
-        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
-            clearTarget()
-            continue
-        end
-
-        -- Không có target hoặc target cũ bay màu thì lấy mới
-        if not currentTarget or not currentTarget.Parent or (currentTarget:FindFirstChildOfClass("Humanoid") and currentTarget.Humanoid.Health <= 0) then
-            currentTarget = getNewTarget()
-        end
-
-        if currentTarget and currentTarget:GetModelCFrame() then
-            local modelCFrame = currentTarget:GetModelCFrame()
-
-            game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                "arrow_knock_back_damage",
-                plr.Character,
-                modelCFrame,
-                currentTarget,
-                200,
-                200
-            )
-        end
-
-        task.wait(0.2)  -- Chỉnh delay nếu cần để mượt mà
     end
 end)
+
+
 
 --// NoClip \\--
 local antifallActive = false 

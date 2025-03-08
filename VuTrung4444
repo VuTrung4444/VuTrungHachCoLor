@@ -1722,7 +1722,7 @@ function arrowNoLagAttackLoop()
             local v = getclosestSkills(parentFolder)
 
             while not v and getgenv().AllArrow do
-                task.wait(0.5)
+                task.wait(0.1)
                 v = getclosestSkills(parentFolder)
             end
 
@@ -1758,7 +1758,7 @@ function arrowNoLagAttackLoop()
                 if not v.Parent then break end
             end
 
-            task.wait(0.2)
+            task.wait(0.1)
         end
     end)
 end

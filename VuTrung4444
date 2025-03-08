@@ -497,7 +497,7 @@ local BossLocationsMap1 = {
 local BossLocationsMap2 = {
     { Name = "Akeza", Position = Vector3.new(2006.46, 566, -130.2) },
     { Name = "Inosuke", Position = Vector3.new(1592.34, 299.98, -388.1) },
-    { Name = "Enme", Position = Vector3.new(1591.18, 483.61, -685.5775) },
+    { Name = "Enme", Position = Vector3.new(1591.18, 495.61, -685.5775) },
     { Name = "Renpeke", Position = Vector3.new(-1265, 600.57, -659.554) },
     { Name = "Swampy", Position = Vector3.new(-1364.28, 600.96875, -223.2) },
     { Name = "Sound Trainee", Position = Vector3.new(1881.34, 675.42, -2800.46) },
@@ -818,44 +818,6 @@ for _, weapon in ipairs(weapons) do
 
     toggles[weapon] = toggle
 end
-
-
--- Toggle chọn Map 1
-Teleports:AddToggle({
-    Name = "Map 1",
-    Flag = "Map1Toggle",
-    Default = false,
-    Callback = function(State)
-        if State then
-            SelectedMap = "Map1"
-            Teleports.Flags["Map2Toggle"] = false -- Tắt Toggle Map 2 nếu Map 1 được chọn
-        else
-            if not Teleports.Flags["Map2Toggle"] then
-                SelectedMap = nil -- Nếu cả hai đều tắt, không chọn Map nào
-            end
-        end
-        UpdateLists()
-    end
-})
-
--- Toggle chọn Map 2
-Teleports:AddToggle({
-    Name = "Map 2",
-    Flag = "Map2Toggle",
-    Default = false,
-    Callback = function(State)
-        if State then
-            SelectedMap = "Map2"
-            Teleports.Flags["Map1Toggle"] = false -- Tắt Toggle Map 1 nếu Map 2 được chọn
-        else
-            if not Teleports.Flags["Map1Toggle"] then
-                SelectedMap = nil -- Nếu cả hai đều tắt, không chọn Map nào
-            end
-        end
-        UpdateLists()
-    end
-})
-
 
 Teleports:AddButton({
     Name = "Skibidi To",
@@ -1341,6 +1303,17 @@ function UpdateActiveBossLocations()
 
 end
 
+local placeId = game.PlaceId
+local mapName
+
+if placeId == 13883279773 then
+    mapName = "Map1"
+elseif placeId == 13883059853 then
+    mapName = "Map2"
+end
+
+SelectedMap = mapName
+UpdateLists()
 
 --// Auto Collect Chest \\--
 spawn(function()
@@ -1612,7 +1585,7 @@ function startArrow275Loop()
                 end
 
                 while not modelCFrame and getgenv().Arrow do
-                    task.wait(0.01)
+                    task.wait(0.1)
                     if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
                         modelCFrame = v:GetModelCFrame()
                     end
@@ -1633,9 +1606,9 @@ function startArrow275Loop()
                     task.wait(0.275)
                 end
             end
-            task.wait() -- tránh full load CPU
+            task.wait(0.2)
         end
-        resetArrow275()  -- Tự reset khi loop kết thúc
+        resetArrow275()
     end)
 end
 
@@ -1722,7 +1695,7 @@ function arrowNoLagAttackLoop()
             local v = getclosestSkills(parentFolder)
 
             while not v and getgenv().AllArrow do
-                task.wait(0.1)
+                task.wait(0.5)
                 v = getclosestSkills(parentFolder)
             end
 
@@ -1757,8 +1730,7 @@ function arrowNoLagAttackLoop()
 
                 if not v.Parent then break end
             end
-
-            task.wait(0.1)
+            task.wait(0.2)
         end
     end)
 end
@@ -2180,14 +2152,16 @@ local function safeMoveToFlower(flower)
 end
 
 local function tryCollectFlower(flower)
-    if not flower or not flower.Parent then return true end
+     if not flower or type(flower) ~= "Instance" or not flower.Parent then 
+        return true
+    end
 
     for _, obj in ipairs(flower:GetDescendants()) do
         if obj:IsA("ProximityPrompt") then
             task.wait(0.2)
             for _ = 1, 3 do
                 fireproximityprompt(obj)
-                task.wait(0.5)
+                task.wait(0.2)
                 if not flower.Parent then return true end
             end
         end
@@ -2326,4 +2300,3 @@ MiscSection:AddToggle({
         end
     end
 })
-

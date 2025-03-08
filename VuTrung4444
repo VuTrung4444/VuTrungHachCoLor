@@ -1696,23 +1696,22 @@ function arrowNoLagAttackLoop()
             local parentFolder = game:GetService("Workspace").Mobs
             local v = nil
 
-            -- Tìm mục tiêu ban đầu (lặp vô hạn nếu không có mục tiêu)
+
             while not v and getgenv().AllArrow do
                 v = getclosestSkills(parentFolder)
-                task.wait(0.5) -- Đợi 0.5s trước khi thử lại
+                task.wait(0.5) 
             end
 
-   
             while getgenv().AllArrow do
-                if not v or not v.Parent then
-
+                if not v or not v.Parent or (v:FindFirstChildOfClass("Humanoid") and v:FindFirstChildOfClass("Humanoid").Health <= 0) then
                     repeat
                         v = getclosestSkills(parentFolder)
                         task.wait(0.2) 
                     until v or not getgenv().AllArrow
                 end
 
-                if v then
+
+                if v and v.Parent then
                     local humanoid = v:FindFirstChildOfClass("Humanoid")
                     if humanoid and humanoid.Health > 0 then
                         local modelCFrame = v:GetModelCFrame()
@@ -1726,17 +1725,14 @@ function arrowNoLagAttackLoop()
                                 200
                             )
                         end
-                    else
-                        v = nil -- Đánh dấu mục tiêu đã chết
                     end
                 end
 
-                task.wait(0.15) -- Giữ khoảng cách giữa mỗi phát bắn
+                task.wait(0.15) 
             end
         end
     end)
 end
-
 
 
 

@@ -1694,56 +1694,50 @@ function arrowNoLagAttackLoop()
             end
 
             local parentFolder = game:GetService("Workspace").Mobs
-            local v = getclosestSkills(parentFolder)
+            local v = nil
 
+            -- Tìm mục tiêu ban đầu (lặp vô hạn nếu không có mục tiêu)
             while not v and getgenv().AllArrow do
-                task.wait(0.5)
                 v = getclosestSkills(parentFolder)
+                task.wait(0.5) -- Đợi 0.5s trước khi thử lại
             end
 
-            local modelCFrame = nil
-            if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-                modelCFrame = v:GetModelCFrame()
-            end
+   
+            while getgenv().AllArrow do
+                if not v or not v.Parent then
 
-            while v and v.Parent and getgenv().AllArrow do
-                local humanoid = v:FindFirstChildOfClass("Humanoid")
-                if not humanoid or humanoid.Health <= 0 then
+                    repeat
+                        v = getclosestSkills(parentFolder)
+                        task.wait(0.2) 
+                    until v or not getgenv().AllArrow
+                end
 
-                    v = getclosestSkills(parentFolder)
-                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-                        modelCFrame = v:GetModelCFrame()
+                if v then
+                    local humanoid = v:FindFirstChildOfClass("Humanoid")
+                    if humanoid and humanoid.Health > 0 then
+                        local modelCFrame = v:GetModelCFrame()
+                        if modelCFrame then
+                            game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
+                                "arrow_knock_back_damage",
+                                plr.Character,
+                                modelCFrame,
+                                v,
+                                200,
+                                200
+                            )
+                        end
                     else
-                        break 
+                        v = nil -- Đánh dấu mục tiêu đã chết
                     end
                 end
 
-                if modelCFrame then
-                    game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
-                        "arrow_knock_back_damage",
-                        plr.Character,
-                        modelCFrame,
-                        v,
-                        200,
-                        200
-                    )
-                end
-
-                if not v.Parent then 
-					task.wait(0.1)
-                    v = getclosestSkills(parentFolder)
-                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
-                        modelCFrame = v:GetModelCFrame()
-                    else
-                        break 
-                    end
-                end
-
-                task.wait(0.2) 
+                task.wait(0.15) -- Giữ khoảng cách giữa mỗi phát bắn
             end
         end
     end)
 end
+
+
 
 
 spawn(function()

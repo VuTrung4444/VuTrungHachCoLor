@@ -1567,7 +1567,7 @@ function resetArrow275()
 end
 
 function startArrow275Loop()
-    resetArrow275()  -- Reset sạch trước khi chạy mới
+    resetArrow275()  
     arrow275Loop = task.spawn(function()
         while getgenv().Arrow do
             if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -1594,7 +1594,9 @@ function startArrow275Loop()
                     end
                 end
 
-                if modelCFrame then
+                -- Kiểm tra HP trước khi bắn
+                local humanoid = v and v:FindFirstChildOfClass("Humanoid")
+                if modelCFrame and humanoid and humanoid.Health > 0 then
                     game:GetService("ReplicatedStorage").Remotes.To_Server.Handle_Initiate_S:FireServer(
                         "arrow_knock_back_damage",
                         plr.Character,
@@ -1610,6 +1612,7 @@ function startArrow275Loop()
         resetArrow275()
     end)
 end
+
 
 spawn(function()
     while task.wait() do
@@ -1706,7 +1709,13 @@ function arrowNoLagAttackLoop()
             while v and v.Parent and getgenv().AllArrow do
                 local humanoid = v:FindFirstChildOfClass("Humanoid")
                 if not humanoid or humanoid.Health <= 0 then
-                    break
+
+                    v = getclosestSkills(parentFolder)
+                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                        modelCFrame = v:GetModelCFrame()
+                    else
+                        break 
+                    end
                 end
 
                 if modelCFrame then
@@ -1719,13 +1728,23 @@ function arrowNoLagAttackLoop()
                         200
                     )
                 end
-				
-                if not v.Parent then break end
+
+                if not v.Parent then 
+					task.wait(0.1)
+                    v = getclosestSkills(parentFolder)
+                    if v and v.GetModelCFrame and type(v.GetModelCFrame) == "function" then
+                        modelCFrame = v:GetModelCFrame()
+                    else
+                        break 
+                    end
+                end
+
+                task.wait(0.2) 
             end
-            task.wait(0.2)
         end
     end)
 end
+
 
 spawn(function()
     while task.wait() do

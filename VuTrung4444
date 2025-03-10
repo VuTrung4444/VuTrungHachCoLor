@@ -756,7 +756,7 @@ Settings:AddDropdown({
 Settings:AddSlider({
     Name = "Distance",
     Flag = "DistanceSlider",
-    Value = 8,
+    Value = 10,
     Min = 1,
     Max = 200,
     Textbox = true,
@@ -1458,7 +1458,7 @@ end)
 
 
 
-getgenv().Distance = 8
+getgenv().Distance = 10
 getgenv().tweenspeed = 300
 SelectedBosses = selectedBosses
 

@@ -656,7 +656,7 @@ local Settings = MainTab:CreateSection({Name = "Settings"})
 local KillAura = MainTab:CreateSection({Name = "Kill Aura", Side = "Right"})
 local Teleports = MainTab:CreateSection({Name = "Teleports", Side = "Right"})
 local Info = MainTab:CreateSection({Name = "Info", Side = "Right"})
-local BossesTab = MainTab:CreateSection({Name = "", Side = "Left"})
+local TitlesTab = MainTab:CreateSection({Name = "Titles", Side = "Left"})
 
 
 --// Misc Tab \\--
@@ -883,6 +883,48 @@ BossesDropdown = Teleports:AddDropdown({
     end
 })
 
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function updateTitles()
+    if not player or not player:FindFirstChild("Player_Titles_List") then return end
+    
+    local titles = {
+        ["A Rank Raider"] = 500,
+        Admin = 1,
+        ["B Rank Raider"] = 100,
+	["C Rank Raider"] = 10,
+	["D Rank Raider"] = 1,
+        ["Head Of Staff"] = 1,
+        ["Masterful Staff"] = 1,
+        Millionaire = 1000000,
+        ["Nezuko's Best Friend"] = 1,
+        Rothschild = 100000000,
+        ["S Rank Raider"] = 1000,
+        ["SS Rank Raider"] = 2500,
+        ["SSS Rank Raider"] = 5000,
+        Tester = 1,
+        ["The Bloodied Mugen Legend"] = 100
+    }
+    
+    for title, value in pairs(titles) do
+        if player.Player_Titles_List:FindFirstChild(title) then
+            player.Player_Titles_List[title].Value = value
+        end
+    end
+end
+
+local TitlesTab = MainTab:CreateSection({Name = "Titles", Side = "Left"})
+local toggle = TitlesTab:CreateToggle({
+    Name = "Unlock Titles [Farm]",
+    Default = false,
+    Callback = function(state)
+        if state then
+            updateTitles()
+        end
+    end
+})
+
 
 --// Info \\--
 Info:AddLabel("")
@@ -891,15 +933,6 @@ local infoLabel = Info:AddLabel("")
 Info:AddLabel("")
 Info:AddLabel("")
 
---// Living Bosses \\--
-
-BossesTab:AddLabel("")
-BossesTab:AddLabel("")
-BossesTab:AddLabel("")
-BossLabel = BossesTab:AddLabel("")
-BossesTab:AddLabel("")
-BossesTab:AddLabel("")
-BossesTab:AddLabel("")
 
 --// Misc Section \\--
 MiscSection:AddToggle({
